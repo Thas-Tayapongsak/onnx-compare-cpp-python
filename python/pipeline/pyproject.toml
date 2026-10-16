@@ -7,7 +7,9 @@ authors = [
     { name = "Thas-Tayapongsak", email = "hwunhwun@gmail.com" }
 ]
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "onnxruntime>=1.31.0",
+]
 
 [project.scripts]
 py-pipeline = "py_pipeline:main"
