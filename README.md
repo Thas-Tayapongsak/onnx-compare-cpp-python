@@ -26,7 +26,8 @@ python/
 cpp/
   CMakeLists.txt           one CMake project
   CMakePresets.json        the standard configure and build command
-  src/                     library "pipeline_core" + executable "cpp_pipeline"
+  pipeline_core/           sources for the library "pipeline_core"
+  cpp_pipeline/            sources for the executable "cpp_pipeline"
   build/                   build output (not in git)
 scripts/
   build.ps1                builds the C++ side
