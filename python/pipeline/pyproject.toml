@@ -1,0 +1,17 @@
+[project]
+name = "py-pipeline"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Thas-Tayapongsak", email = "hwunhwun@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = []
+
+[project.scripts]
+py-pipeline = "py_pipeline:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
