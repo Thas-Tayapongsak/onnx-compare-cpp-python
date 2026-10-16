@@ -15,3 +15,8 @@ compare = "compare:main"
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "ruff>=0.17.1",
+]

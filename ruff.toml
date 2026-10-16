@@ -1,0 +1,31 @@
+target-version = "py312"
+
+line-length = 79
+indent-width = 4
+
+[lint]
+# Enable rules for PEP 8 styling, naming conventions, and basic code safety
+select = [
+    "E",    # pycodestyle errors (PEP 8 layout, whitespace, etc.)
+    "W",    # pycodestyle warnings
+    "N",    # pep8-naming (naming conventions for classes, functions, variables)
+    "F",    # Pyflakes (catches logical errors, unused imports/variables)
+    "I",    # isort (keeps imports PEP 8 compliant and sorted)
+]
+
+# Ignore rules that conflict with the Ruff Formatter
+ignore = [
+    "E501", # Line too long (Ruff format handles this automatically)
+    "W191", # Tab indentation (Ruff format enforces spaces)
+]
+
+# Automatically fix all fixable violations when running `ruff check --fix`
+fixable = ["ALL"]
+unfixable = []
+
+[format]
+# Enforce PEP 8 / Black style formatting rules
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
