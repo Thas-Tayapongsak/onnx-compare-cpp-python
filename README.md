@@ -41,6 +41,15 @@ scripts/build.ps1
 The scripts wrap the raw `cmake` and `uv run` commands.
 Use raw commands to diagnose a script failure. Report the difference.
 
+The raw pipeline command is:
+
+```text
+uv run --project python/pipeline py-pipeline --model <model folder> --image <image> --output <output folder>
+```
+
+`--output` defaults to `runs`. The pipeline writes `outputs.npz` and
+`meta.json` directly into the folder it receives.
+
 ## Models and input images
 
 `onnx/` holds one folder per model, with `model.onnx` and its config files. Other JSON files are training metadata which may be useful.
