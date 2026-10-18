@@ -144,6 +144,7 @@ name = "py-pipeline"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "numpy" },
     { name = "onnxruntime" },
 ]
 
@@ -153,7 +154,10 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "onnxruntime", specifier = ">=1.31.0" }]
+requires-dist = [
+    { name = "numpy", specifier = ">=2.5.4" },
+    { name = "onnxruntime", specifier = ">=1.31.0" },
+]
 
 [package.metadata.requires-dev]
 dev = [{ name = "ruff", specifier = ">=0.17.1" }]
