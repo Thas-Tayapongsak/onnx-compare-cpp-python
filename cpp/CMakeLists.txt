@@ -42,6 +42,8 @@ add_executable(cpp_pipeline)
 target_sources(cpp_pipeline
     PRIVATE 
         cpp_pipeline/main.cpp
+        cpp_pipeline/cli.cpp
+        cpp_pipeline/log.cpp
 )
 
 add_library(pipeline_core)
