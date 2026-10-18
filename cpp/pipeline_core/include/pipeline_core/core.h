@@ -1,5 +1,6 @@
 #pragma once
 
-namespace pipeline_core {
+namespace pipeline_core
+{
     int answer();
 }
