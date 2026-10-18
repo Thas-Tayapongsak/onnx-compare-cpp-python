@@ -27,3 +27,9 @@ Invoke-Uv --directory python/compare run pyrefly check
 Write-Output ""
 
 # C++
+Write-Output "== Clang Format =="
+$files = git ls-files 'cpp/*.cpp' 'cpp/*.h'
+foreach ($file in $files) {
+    clang-format -i $file
+    if ($LASTEXITCODE) { exit $LASTEXITCODE }
+}
