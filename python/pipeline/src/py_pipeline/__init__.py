@@ -1,2 +1,3 @@
-def main() -> None:
-    print("Hello from py-pipeline!")
+from .main import pipeline_main as main
+
+__all__ = ["main"]
