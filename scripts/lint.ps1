@@ -30,6 +30,6 @@ Write-Output ""
 Write-Output "== Clang Format =="
 $files = git ls-files 'cpp/*.cpp' 'cpp/*.h'
 foreach ($file in $files) {
-    clang-format -i $file
+    clang-format -i $file --verbose
     if ($LASTEXITCODE) { exit $LASTEXITCODE }
 }
