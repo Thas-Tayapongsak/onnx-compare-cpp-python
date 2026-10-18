@@ -36,7 +36,7 @@ scripts/build.ps1
 | --- | --- |
 | `scripts/build.ps1` | Configures and builds the C++ side with CMake and Ninja |
 | `scripts/compare.ps1` | Runs both pipelines on a model and writes the comparison |
-| `scripts/lint.ps1` | Checks code style with `ruff` and `clang-format` |
+| `scripts/lint.ps1` | Applies `ruff` and `clang-format` fixes, and type-checks with `pyrefly` |
 
 The scripts wrap the raw `cmake` and `uv run` commands.
 Use raw commands to diagnose a script failure. Report the difference.
