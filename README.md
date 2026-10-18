@@ -4,8 +4,6 @@ This project compares the behavior of ONNX models in two pipelines: one in Pytho
 Both pipelines run the same model on the same input and write their results to files.
 A third program, `compare`, runs both pipelines and checks their results against each other.
 
-**Status:** work in progress. The workspace layout exists. The pipelines are still stubs.
-
 ## Tools you need
 
 - Windows. This project is Windows only.
@@ -14,29 +12,12 @@ A third program, `compare`, runs both pipelines and checks their results against
 - git.
 
 All tools must be on your PATH.
+The pinned versions are in `_BLUEPRINT.md`.
 
 ## Workspace layout
 
-```text
-onnx/                      model folders (read-only data, not in git)
-images/                    input images for runs (read-only data, not in git)
-python/
-  pipeline/                uv project "py-pipeline" (the Python pipeline)
-  compare/                 uv project "compare" (the comparison program)
-cpp/
-  CMakeLists.txt           one CMake project
-  CMakePresets.json        the standard configure and build command
-  pipeline_core/           sources for the library "pipeline_core"
-  cpp_pipeline/            sources for the executable "cpp_pipeline"
-  build/                   build output (not in git)
-scripts/
-  build.ps1                builds the C++ side
-  compare.ps1              runs the comparison program
-  lint.ps1                 checks code style
-runs/                      one folder per run (not in git)
-README.md
-.gitignore  .gitattributes  .editorconfig  .clang-format  .clangd  ruff.toml
-```
+The official workspace tree lives in `_BLUEPRINT.md`. That file is local and is
+not tracked in git. The tree lists every root file and every project folder.
 
 The two Python projects have separate environments.
 Comparison runs the pipeline as a separate process and reads its result files.
@@ -58,7 +39,7 @@ scripts/build.ps1
 | `scripts/lint.ps1` | Checks code style with `ruff` and `clang-format` |
 
 The scripts wrap the raw `cmake` and `uv run` commands.
-You can run the raw commands yourself if you prefer.
+Use raw commands to diagnose a script failure. Report the difference.
 
 ## Models and input images
 
@@ -74,14 +55,18 @@ Treat the folder as read-only too. Nothing in it goes into git.
 Each run writes to its own folder:
 
 ```text
-runs/<UTC timestamp>-<model name>/
+runs/<YYYYMMDDTHHMMSSZ>-<model folder name>/
   python/            outputs.npz, meta.json
   cpp/               outputs.npz, meta.json
   report.json        the comparison result
 ```
 
+The timestamp is UTC. The format is file-safe on Windows, for example
+`20261018T040454Z`.
+
 Both pipelines write the same two file names and the same keys inside them.
-This is the rule the comparison program relies on.
+This is the rule the comparison program relies on. The exact keys and shapes
+are in `_BLUEPRINT.md`.
 Old runs are kept. Nothing is deleted automatically.
 
 ### What the result files contain
