@@ -221,9 +221,8 @@ namespace cpp_pipeline
             return ParseStatus::Error;
         }
 
-        args = InferenceArgs{model_folder_path.value(),
-                             model_onnx_path.value(), image_path.value(),
-                             output_folder_path.value()};
+        args = InferenceArgs{model_folder_path.value(), model_onnx_path.value(),
+                             image_path.value(), output_folder_path.value()};
         return ParseStatus::Success;
     }
 } // namespace cpp_pipeline
