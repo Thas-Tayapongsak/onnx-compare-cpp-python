@@ -4,23 +4,31 @@ This project compares the behavior of ONNX models in two pipelines: one in Pytho
 Both pipelines run the same model on the same input and write their results to files.
 A third program, `compare`, runs both pipelines and checks their results against each other.
 
-## Tools you need
+## Tools
 
-- Windows. This project is Windows only.
-- `uv` for Python packages and environments. Python 3.12.
-- CMake, Ninja, clang (LLVM), and Visual Studio 2022 Build Tools for the C++ side.
-- git.
+This project was developed for Windows 11.
 
 All tools must be on your PATH.
-The pinned versions are in `_BLUEPRINT.md`.
 
-## Workspace layout
+| Tool | Version |
+| --- | --- |
+| uv | 0.12.4 |
+| Python | 3.12.10 |
+| CMake | 4.4.4 |
+| Ninja | 1.13.2 |
+| clang | 23.1.3 |
+| Visual Studio 2022 Build Tools | 17.14.37710.0 |
 
-The official workspace tree lives in `_BLUEPRINT.md`. That file is local and is
-not tracked in git. The tree lists every root file and every project folder.
+## Dependencies
 
-The two Python projects have separate environments.
-Comparison runs the pipeline as a separate process and reads its result files.
+### C++
+
+CMake fetches ONNX Runtime and miniz.
+
+| Dependency | Version |
+| --- | --- |
+| ONNX Runtime | 1.31.0 |
+| miniz | 3.1.2 |
 
 ## First-time setup
 
@@ -36,10 +44,6 @@ scripts/build.ps1
 | --- | --- |
 | `scripts/build.ps1` | Configures and builds the C++ side with CMake and Ninja |
 | `scripts/compare.ps1` | Runs both pipelines on a model and writes the comparison |
-| `scripts/lint.ps1` | Applies `ruff` and `clang-format` fixes, and type-checks with `pyrefly` |
-
-The scripts wrap the raw `cmake` and `uv run` commands.
-Use raw commands to diagnose a script failure. Report the difference.
 
 The raw pipeline command is:
 
@@ -47,17 +51,19 @@ The raw pipeline command is:
 uv run --project python/pipeline py-pipeline --model <model folder> --image <image> --output <output folder>
 ```
 
-`--output` defaults to `runs`. The pipeline writes `outputs.npz` and
-`meta.json` directly into the folder it receives.
+`--model` and `--image` are required. `--output` defaults to `runs`.
+Both pipelines support `-h` and `--help`.
+The pipeline writes `outputs.npz` and `meta.json` directly into the folder it
+receives.
 
 ## Models and input images
 
 `onnx/` holds one folder per model, with `model.onnx` and its config files. Other JSON files are training metadata which may be useful.
 This is the form the models take in practical use.
-Treat the folder as read-only. Nothing in it goes into git.
+Treat the folder as read-only.
 
 `images/` holds the input images for runs. One run takes one image.
-Treat the folder as read-only too. Nothing in it goes into git.
+Treat the folder as read-only too.
 
 ## Run output
 
@@ -74,14 +80,25 @@ The timestamp is UTC. The format is file-safe on Windows, for example
 `20261018T040454Z`.
 
 Both pipelines write the same two file names and the same keys inside them.
-This is the rule the comparison program relies on. The exact keys and shapes
-are in `_BLUEPRINT.md`.
-Old runs are kept. Nothing is deleted automatically.
 
 ### What the result files contain
 
-`outputs.npz` holds the session output: one array per ONNX output name,
-with the prediction count, scores, labels, boxes, and masks.
+`outputs.npz` holds the session output: one array per ONNX output name.
+It has these keys and shapes:
 
-`meta.json` holds the run details: pipeline name, model, input image,
-thresholds, target size, run time, and the machine's CPU, GPU, and memory.
+| Key | Shape | Meaning |
+| --- | --- | --- |
+| `num_predictions` | `[1]` | prediction count `N` |
+| `scores` | `[N]` | confidence per prediction |
+| `labels` | `[N]` | class id per prediction |
+| `boxes` | `[N, 4]` | absolute boxes, scaled to `H' x W'` |
+| `masks` | `[N, H', W']` | one mask per prediction |
+
+`N` is the number of predictions. `H'` and `W'` are the output mask height and
+width.
+
+`meta.json` holds the run details: `pipeline`, `model`, `input_image`,
+`confidence_threshold`, `nms_iou_threshold`, `target_sizes`, `created_utc`,
+`duration_ms`, `execution_provider`, `cpu`, `gpu`, `ram_gb`, and `vram_gb`.
+
+Load `outputs.npz` with `numpy.load` and `meta.json` with `json.load`.
