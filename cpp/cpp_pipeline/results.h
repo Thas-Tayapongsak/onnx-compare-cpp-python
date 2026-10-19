@@ -1,21 +1,17 @@
 #pragma once
 
-#include <array>
-#include <cstddef>
-#include <cstdint>
+#include "npz.h"
 #include <filesystem>
-#include <vector>
 
 namespace cpp_pipeline
 {
     struct InstanceSegmentationInferenceResults
     {
-        std::vector<std::int64_t> num_predictions;
-        std::vector<float> scores;
-        std::vector<std::int64_t> labels;
-        std::vector<float> boxes;
-        std::vector<std::uint8_t> masks;
-        std::array<std::size_t, 3> masks_shape{};
+        NDArray<std::int64_t> num_predictions;
+        NDArray<float> scores;
+        NDArray<std::int64_t> labels;
+        NDArray<float> boxes;
+        NDArray<std::uint8_t> masks;
     };
 
     /// Create the output folder when it does not exist yet.
