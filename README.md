@@ -99,6 +99,9 @@ width.
 
 `meta.json` holds the run details: `pipeline`, `model`, `input_image`,
 `confidence_threshold`, `nms_iou_threshold`, `target_sizes`, `created_utc`,
+`setup_ms`, `preprocess_ms`, `inference_ms`, `postprocess_ms`,
 `duration_ms`, `execution_provider`, `cpu`, `gpu`, `ram_gb`, and `vram_gb`.
+The `*_ms` fields are integer milliseconds. The stage fields are medians of
+three runs, and `duration_ms` is the median total.
 
 Load `outputs.npz` with `numpy.load` and `meta.json` with `json.load`.
