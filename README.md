@@ -106,4 +106,9 @@ run. The preprocess, inference, and postprocess fields are medians across the
 inference payloads, one sample per payload. `duration_ms` is the median
 payload time from preprocess through postprocess; it excludes setup.
 
+`cpu` is the machine CPU name. `gpu` is the CUDA device used by the process,
+or `null`. `ram_gb` is the peak working set of the pipeline process.
+`vram_gb` is the VRAM used by the process; it is `0` when no CUDA device is
+used. The `_gb` fields use 2^30 bytes.
+
 Load `outputs.npz` with `numpy.load` and `meta.json` with `json.load`.

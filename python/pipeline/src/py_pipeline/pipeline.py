@@ -14,6 +14,7 @@ from datetime import datetime, timezone
 from statistics import median
 from time import perf_counter
 
+from .machine import read_machine_info
 from .results import (
     InstanceSegmentationInferenceResults,
     MetaResults,
@@ -75,6 +76,7 @@ def run_pipeline(run_input: RunInput) -> RunOutput:
     first_payload: InferencePayload | None = None
 
     created_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    machine_info = read_machine_info()
     setup_start = perf_counter()
     state = setup(run_input)
     setup_ms = _elapsed_ms(setup_start)
@@ -124,5 +126,9 @@ def run_pipeline(run_input: RunInput) -> RunOutput:
         postprocess_ms=timings.postprocess_ms,
         duration_ms=timings.duration_ms,
         execution_provider="stub",
+        cpu=machine_info.cpu,
+        gpu=machine_info.gpu,
+        ram_gb=machine_info.ram_gb,
+        vram_gb=machine_info.vram_gb,
     )
     return RunOutput(results=results_list, meta=meta, timings=timings)

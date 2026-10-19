@@ -48,6 +48,10 @@ class MetaResults:
     postprocess_ms: int
     duration_ms: int
     execution_provider: str
+    cpu: str
+    gpu: str | None
+    ram_gb: float
+    vram_gb: float
 
 
 @dataclass
