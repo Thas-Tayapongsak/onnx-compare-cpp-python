@@ -8,9 +8,9 @@ import sys
 import numpy as np
 
 from .cli import ParsedArgs, build_parsed_args, parse_args
+from .pipeline import run_pipeline
 from .results import prepare_output_dir, write_meta, write_outputs
 from .run import InferencePayload, RunInput
-from .stub import run_stub
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +58,7 @@ def pipeline_main() -> None:
     logger.info("===========================")
     logger.info("Running inference pipeline")
     prepare_output_dir(parsed_args.output_folder_path)
-    run_output = run_stub(run_input)
+    run_output = run_pipeline(run_input)
     write_outputs(parsed_args.output_folder_path, run_output.results)
     write_meta(parsed_args.output_folder_path, run_output.meta)
     logger.info("===========================")
