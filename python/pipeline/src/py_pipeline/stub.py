@@ -20,14 +20,29 @@ def run_stub(run_input: RunInput) -> RunOutput:
     created_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     start = perf_counter()
     payload = run_input.inference_payloads[0]
+    target_height, target_width = payload.target_sizes[0].tolist()
+    if target_height == 0 or target_width == 0:
+        target_height = payload.pixel_values.shape[2]
+        target_width = payload.pixel_values.shape[3]
 
     num_predictions = np.array([2], dtype=np.int64)
     scores = np.array([0.9, 0.8], dtype=np.float32)
     labels = np.array([0, 0], dtype=np.int64)
-    boxes = np.array([[0, 0, 64, 64], [8, 8, 56, 56]], dtype=np.float32)
-    masks = np.zeros((2, 64, 64), dtype=np.bool)
-    masks[0, :, :32] = True
-    masks[1, :32, :] = True
+    boxes = np.array(
+        [
+            [0, 0, target_width, target_height],
+            [
+                target_width * 0.125,
+                target_height * 0.125,
+                target_width * 0.875,
+                target_height * 0.875,
+            ],
+        ],
+        dtype=np.float32,
+    )
+    masks = np.zeros((2, target_height, target_width), dtype=np.bool)
+    masks[0, :, : target_width // 2] = True
+    masks[1, : target_height // 2, :] = True
 
     results = InstanceSegmentationInferenceResults(
         num_predictions=num_predictions,
