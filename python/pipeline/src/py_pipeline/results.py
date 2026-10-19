@@ -42,6 +42,10 @@ class MetaResults:
     nms_iou_threshold: float
     target_sizes: list[list[int]]
     created_utc: str
+    setup_ms: int
+    preprocess_ms: int
+    inference_ms: int
+    postprocess_ms: int
     duration_ms: int
     execution_provider: str
 

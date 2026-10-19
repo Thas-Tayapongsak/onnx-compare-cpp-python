@@ -118,6 +118,10 @@ def run_pipeline(run_input: RunInput) -> RunOutput:
         nms_iou_threshold=first_payload.nms_iou_threshold,
         target_sizes=first_payload.target_sizes.tolist(),
         created_utc=created_utc,
+        setup_ms=timings.setup_ms,
+        preprocess_ms=timings.preprocess_ms,
+        inference_ms=timings.inference_ms,
+        postprocess_ms=timings.postprocess_ms,
         duration_ms=timings.duration_ms,
         execution_provider="stub",
     )
