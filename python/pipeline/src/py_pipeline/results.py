@@ -2,6 +2,9 @@
 
 __all__ = [
     "InstanceSegmentationInferenceResults",
+    "MetaResults",
+    "RunOutput",
+    "RunTimings",
     "prepare_output_dir",
     "write_outputs",
     "write_meta",
@@ -9,7 +12,7 @@ __all__ = [
 
 import json
 import logging
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from pathlib import Path
 
 import numpy as np
@@ -28,6 +31,45 @@ class InstanceSegmentationInferenceResults:
     masks: np.ndarray
 
 
+@dataclass
+class MetaResults:
+    """Run details for `meta.json`."""
+
+    pipeline: str
+    model: str
+    input_image: str
+    confidence_threshold: float
+    nms_iou_threshold: float
+    target_sizes: list[list[int]]
+    created_utc: str
+    duration_ms: int
+    execution_provider: str
+
+
+@dataclass
+class RunTimings:
+    """Timing results for one run.
+
+    `setup_ms` is one setup measurement. The other fields are medians across
+    the inference payloads.
+    """
+
+    setup_ms: int
+    preprocess_ms: int
+    inference_ms: int
+    postprocess_ms: int
+    duration_ms: int
+
+
+@dataclass
+class RunOutput:
+    """Model results for each payload, run details, and timing results."""
+
+    results: list[InstanceSegmentationInferenceResults]
+    meta: MetaResults
+    timings: RunTimings
+
+
 def prepare_output_dir(path: Path) -> None:
     """Create the output folder if it does not exist."""
     if path.exists():
@@ -39,24 +81,31 @@ def prepare_output_dir(path: Path) -> None:
 
 def write_outputs(
     output_dir: Path,
-    results: InstanceSegmentationInferenceResults,
+    results: list[InstanceSegmentationInferenceResults],
 ) -> None:
-    """Write the five result arrays to `outputs.npz`."""
+    """Write the single result's five arrays to `outputs.npz`."""
+    if len(results) != 1:
+        raise ValueError(
+            "outputs.npz supports exactly one inference result; "
+            f"got {len(results)}"
+        )
+    result = results[0]
     np.savez(
         output_dir / "outputs.npz",
-        num_predictions=results.num_predictions,
-        scores=results.scores,
-        labels=results.labels,
-        boxes=results.boxes,
-        masks=results.masks,
+        num_predictions=result.num_predictions,
+        scores=result.scores,
+        labels=result.labels,
+        boxes=result.boxes,
+        masks=result.masks,
     )
     logger.info("`outputs.npz` written")
 
 
 def write_meta(
     output_dir: Path,
+    meta: MetaResults,
 ) -> None:
-    """Write `meta.json` with the pipeline name."""
+    """Write `meta.json` from the meta results."""
     with (output_dir / "meta.json").open("w", encoding="utf-8") as file:
-        json.dump({"pipeline": "python"}, file)
+        json.dump(asdict(meta), file)
     logger.info("`meta.json` written")
