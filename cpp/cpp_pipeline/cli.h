@@ -4,7 +4,7 @@
 
 namespace cpp_pipeline
 {
-    struct InferenceArgs
+    struct ParsedArgs
     {
         std::filesystem::path model_folder_path;
         std::filesystem::path model_onnx_path;
@@ -20,5 +20,5 @@ namespace cpp_pipeline
     };
 
     /// Parse the command line and validate the model folder.
-    ParseStatus parse_args(int argc, char *argv[], InferenceArgs &args);
+    ParseStatus parse_args(int argc, char *argv[], ParsedArgs &parsed_args);
 } // namespace cpp_pipeline

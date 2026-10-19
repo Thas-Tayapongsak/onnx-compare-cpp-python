@@ -125,7 +125,7 @@ namespace
 
 namespace cpp_pipeline
 {
-    ParseStatus parse_args(int argc, char *argv[], InferenceArgs &args)
+    ParseStatus parse_args(int argc, char *argv[], ParsedArgs &parsed_args)
     {
         std::optional<std::filesystem::path> model_folder_path;
         std::optional<std::filesystem::path> model_onnx_path;
@@ -190,8 +190,9 @@ namespace cpp_pipeline
             return ParseStatus::Error;
         }
 
-        args = InferenceArgs{model_folder_path.value(), model_onnx_path.value(),
-                             image_path.value(), output_folder_path.value()};
+        parsed_args =
+            ParsedArgs{model_folder_path.value(), model_onnx_path.value(),
+                       image_path.value(), output_folder_path.value()};
         return ParseStatus::Success;
     }
 } // namespace cpp_pipeline

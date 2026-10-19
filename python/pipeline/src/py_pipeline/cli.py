@@ -40,8 +40,8 @@ def parse_args() -> argparse.Namespace:
 
 
 @dataclass
-class InferenceArgs:
-    """Validated paths for one pipeline run."""
+class ParsedArgs:
+    """Validated command-line paths for one pipeline run."""
 
     model_folder_path: Path
     model_onnx_path: Path
@@ -49,7 +49,7 @@ class InferenceArgs:
     output_folder_path: Path
 
 
-def build_inference_args(args: argparse.Namespace) -> InferenceArgs | None:
+def build_parsed_args(args: argparse.Namespace) -> ParsedArgs | None:
     """Validate arguments and build the run paths."""
     if not args.model:
         logger.error("Model folder path is required")
@@ -81,7 +81,7 @@ def build_inference_args(args: argparse.Namespace) -> InferenceArgs | None:
         logger.error(f"Output path {output_folder_path} is not a directory")
         return None
 
-    return InferenceArgs(
+    return ParsedArgs(
         model_folder_path=model_folder_path,
         model_onnx_path=model_onnx_path,
         image_path=image_path,
