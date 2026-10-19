@@ -44,6 +44,7 @@ target_sources(cpp_pipeline
         cpp_pipeline/main.cpp
         cpp_pipeline/cli.cpp
         cpp_pipeline/log.cpp
+        cpp_pipeline/results.cpp
 )
 
 add_library(pipeline_core)
