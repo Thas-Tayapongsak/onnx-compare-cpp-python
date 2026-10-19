@@ -2,6 +2,8 @@
 
 __all__ = [
     "InstanceSegmentationInferenceResults",
+    "MetaResults",
+    "RunOutput",
     "prepare_output_dir",
     "write_outputs",
     "write_meta",
@@ -26,6 +28,29 @@ class InstanceSegmentationInferenceResults:
     labels: np.ndarray
     boxes: np.ndarray
     masks: np.ndarray
+
+
+@dataclass
+class MetaResults:
+    """Run details for `meta.json`."""
+
+    pipeline: str
+    model: str
+    input_image: str
+    confidence_threshold: float
+    nms_iou_threshold: float
+    target_sizes: list[list[int]]
+    created_utc: str
+    duration_ms: int
+    execution_provider: str
+
+
+@dataclass
+class RunOutput:
+    """Model results and run details for one run."""
+
+    results: InstanceSegmentationInferenceResults
+    meta: MetaResults
 
 
 def prepare_output_dir(path: Path) -> None:
