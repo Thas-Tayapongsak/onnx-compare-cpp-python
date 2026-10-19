@@ -1,105 +1,25 @@
 #include "pipeline_core/pipeline.h"
 
+#include "pipeline_core/machine.h"
 #include "pipeline_core/stub.h"
+#include "run_support.h"
 
-#include <algorithm>
 #include <chrono>
-#include <cmath>
-#include <cstddef>
-#include <cstdint>
-#include <ctime>
-#include <filesystem>
-#include <iomanip>
 #include <optional>
-#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
 
-namespace
-{
-    using Clock = std::chrono::steady_clock;
-
-    int elapsed_ms(Clock::time_point start)
-    {
-        const auto elapsed = Clock::now() - start;
-        return static_cast<int>(std::llround(
-            std::chrono::duration<double, std::milli>(elapsed).count()));
-    }
-
-    int median_ms(std::vector<int> samples)
-    {
-        std::sort(samples.begin(), samples.end());
-        const std::size_t count = samples.size();
-        if (count % 2U == 1U)
-        {
-            return samples[count / 2U];
-        }
-        return (samples[count / 2U - 1U] + samples[count / 2U]) / 2;
-    }
-
-    std::string utc_now()
-    {
-        const std::time_t time = std::chrono::system_clock::to_time_t(
-            std::chrono::system_clock::now());
-        std::tm utc_time{};
-        gmtime_s(&utc_time, &time);
-        std::ostringstream text;
-        text << std::put_time(&utc_time, "%Y-%m-%dT%H:%M:%SZ");
-        return text.str();
-    }
-
-    std::vector<std::vector<std::int64_t>>
-    target_sizes_list(const pipeline_core::NDArray<std::int64_t> &target_sizes)
-    {
-        if (target_sizes.shape.size() != 2U)
-        {
-            throw std::runtime_error("target_sizes must have rank 2");
-        }
-        const std::size_t rows = target_sizes.shape[0];
-        const std::size_t columns = target_sizes.shape[1];
-        if (target_sizes.data.size() != rows * columns)
-        {
-            throw std::runtime_error(
-                "target_sizes data does not match its shape");
-        }
-
-        std::vector<std::vector<std::int64_t>> values;
-        for (std::size_t row = 0; row < rows; ++row)
-        {
-            std::vector<std::int64_t> value;
-            value.reserve(columns);
-            for (std::size_t column = 0; column < columns; ++column)
-            {
-                value.push_back(target_sizes.data[row * columns + column]);
-            }
-            values.push_back(std::move(value));
-        }
-        return values;
-    }
-
-    std::string utf8_string(const std::filesystem::path &path)
-    {
-        const std::u8string value = path.u8string();
-        return std::string(reinterpret_cast<const char *>(value.data()),
-                           value.size());
-    }
-
-    std::string file_name(const std::filesystem::path &path)
-    {
-        const std::filesystem::path normalized = path.lexically_normal();
-        std::filesystem::path name = normalized.filename();
-        if (name.empty())
-        {
-            name = normalized.parent_path().filename();
-        }
-        return utf8_string(name);
-    }
-} // namespace
-
 namespace pipeline_core
 {
+    using detail::elapsed_ms;
+    using detail::file_name;
+    using detail::median_ms;
+    using detail::target_sizes_list;
+    using detail::utc_now;
+    using Clock = detail::Clock;
+
     RunState setup(const RunInput &run_input)
     {
         static_cast<void>(run_input);
@@ -128,8 +48,13 @@ namespace pipeline_core
         return results;
     }
 
-    RunOutput run_pipeline(const RunInput &run_input)
+    RunOutput run_pipeline(const RunInput &run_input, MemoryMonitor &memory)
     {
+        if (run_input.inference_payloads.empty())
+        {
+            throw std::runtime_error("No inference payloads were run");
+        }
+
         std::vector<int> preprocess_samples;
         std::vector<int> inference_samples;
         std::vector<int> postprocess_samples;
@@ -138,23 +63,29 @@ namespace pipeline_core
         std::optional<InferencePayload> first_payload;
 
         const std::string created_utc = utc_now();
+        const MachineInfo machine = read_machine_info();
+
+        memory.enter_stage("setup");
         const Clock::time_point setup_start = Clock::now();
         RunState state = setup(run_input);
         const int setup_ms = elapsed_ms(setup_start);
 
         for (const InferencePayload &payload : run_input.inference_payloads)
         {
+            memory.enter_stage("preprocess");
             const Clock::time_point total_start = Clock::now();
 
             Clock::time_point start = Clock::now();
             InferencePayload processed_payload = preprocess(payload, state);
             preprocess_samples.push_back(elapsed_ms(start));
 
+            memory.enter_stage("inference");
             start = Clock::now();
             InstanceSegmentationInferenceResults raw_results =
                 inference(processed_payload, state);
             inference_samples.push_back(elapsed_ms(start));
 
+            memory.enter_stage("postprocess");
             start = Clock::now();
             InstanceSegmentationInferenceResults final_results =
                 postprocess(std::move(raw_results), processed_payload);
@@ -171,8 +102,10 @@ namespace pipeline_core
 
         if (!first_payload.has_value())
         {
-            throw std::runtime_error("No inference payloads were run");
+            throw std::runtime_error("No processed inference payload");
         }
+
+        memory.enter_stage("output");
 
         const RunTimings timings{
             setup_ms,
@@ -182,15 +115,31 @@ namespace pipeline_core
             median_ms(total_samples),
         };
         MetaResults meta{
-            "cpp",
-            file_name(run_input.parsed_args.model_folder_path),
-            file_name(run_input.parsed_args.image_path),
-            first_payload->confidence_threshold,
-            first_payload->nms_iou_threshold,
-            target_sizes_list(first_payload->target_sizes),
-            created_utc,
-            timings.duration_ms,
-            "stub",
+            .pipeline = "cpp",
+            .model = file_name(run_input.parsed_args.model_folder_path),
+            .input_image = file_name(run_input.parsed_args.image_path),
+            .confidence_threshold = first_payload->confidence_threshold,
+            .nms_iou_threshold = first_payload->nms_iou_threshold,
+            .target_sizes = target_sizes_list(first_payload->target_sizes),
+            .created_utc = created_utc,
+            .setup_ms = timings.setup_ms,
+            .preprocess_ms = timings.preprocess_ms,
+            .inference_ms = timings.inference_ms,
+            .postprocess_ms = timings.postprocess_ms,
+            .duration_ms = timings.duration_ms,
+            .execution_provider = "stub",
+            .cpu = machine.cpu,
+            .gpu = machine.gpu,
+            .setup_ram_gb = memory.stage_ram_gb("setup"),
+            .preprocess_ram_gb = memory.stage_ram_gb("preprocess"),
+            .inference_ram_gb = memory.stage_ram_gb("inference"),
+            .postprocess_ram_gb = memory.stage_ram_gb("postprocess"),
+            .ram_gb = memory.peak_ram_gb(),
+            .setup_vram_gb = 0.0,
+            .preprocess_vram_gb = 0.0,
+            .inference_vram_gb = 0.0,
+            .postprocess_vram_gb = 0.0,
+            .vram_gb = 0.0,
         };
         return RunOutput{std::move(results), std::move(meta), timings};
     }

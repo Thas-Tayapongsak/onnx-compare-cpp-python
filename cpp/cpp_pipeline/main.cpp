@@ -70,14 +70,20 @@ int main(int argc, char *argv[])
     cpp_pipeline::log_info("===========================");
     cpp_pipeline::log_info("Running inference pipeline");
 
+    pipeline_core::MemoryMonitor memory;
     try
     {
+        memory.start();
+        memory.enter_stage("startup");
+
         const pipeline_core::RunInput run_input = build_run_input(parsed_args);
         cpp_pipeline::prepare_output_dir(parsed_args.output_folder_path);
-        const pipeline_core::RunOutput run_output =
-            pipeline_core::run_pipeline(run_input);
+        pipeline_core::RunOutput run_output =
+            pipeline_core::run_pipeline(run_input, memory);
         cpp_pipeline::write_outputs(parsed_args.output_folder_path,
                                     run_output.results);
+        memory.stop();
+        run_output.meta.ram_gb = memory.peak_ram_gb();
         cpp_pipeline::write_meta(parsed_args.output_folder_path,
                                  run_output.meta);
     }
