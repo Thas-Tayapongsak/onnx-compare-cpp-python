@@ -79,9 +79,22 @@ namespace
         return values;
     }
 
+    std::string utf8_string(const std::filesystem::path &path)
+    {
+        const std::u8string value = path.u8string();
+        return std::string(reinterpret_cast<const char *>(value.data()),
+                           value.size());
+    }
+
     std::string file_name(const std::filesystem::path &path)
     {
-        return path.lexically_normal().filename().string();
+        const std::filesystem::path normalized = path.lexically_normal();
+        std::filesystem::path name = normalized.filename();
+        if (name.empty())
+        {
+            name = normalized.parent_path().filename();
+        }
+        return utf8_string(name);
     }
 } // namespace
 

@@ -171,6 +171,7 @@ namespace cpp_pipeline
                 std::format("Could not open {} for writing", path.string()));
         }
         write_meta_fields(file, meta);
+        file.close();
         if (!file)
         {
             throw std::runtime_error(
