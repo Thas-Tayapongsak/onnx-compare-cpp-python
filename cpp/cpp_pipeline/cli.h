@@ -8,6 +8,8 @@ namespace cpp_pipeline
     {
         std::filesystem::path model_folder_path;
         std::filesystem::path model_onnx_path;
+        std::filesystem::path image_path;
+        std::filesystem::path output_folder_path;
     };
 
     enum class ParseStatus

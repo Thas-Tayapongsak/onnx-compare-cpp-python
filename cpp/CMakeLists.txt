@@ -37,6 +37,14 @@ set_target_properties(onnxruntime::onnxruntime PROPERTIES
     INTERFACE_INCLUDE_DIRECTORIES "${onnxruntime_SOURCE_DIR}/include"
 )
 
+# miniz: ZIP container for `outputs.npz`. The release archive has no
+# CMakeLists.txt, so use the pinned source archive from the tagged revision.
+FetchContent_Declare(miniz
+    URL https://github.com/richgel999/miniz/archive/refs/tags/3.1.2.zip
+    URL_HASH SHA256=e7a0334927a069dc5aeb69616d371542a4376e1569290d7102b88c6f3992d6cb
+)
+FetchContent_MakeAvailable(miniz)
+
 
 add_executable(cpp_pipeline)
 target_sources(cpp_pipeline
@@ -44,6 +52,8 @@ target_sources(cpp_pipeline
         cpp_pipeline/main.cpp
         cpp_pipeline/cli.cpp
         cpp_pipeline/log.cpp
+        cpp_pipeline/results.cpp
+        cpp_pipeline/stub.cpp
 )
 
 add_library(pipeline_core)
@@ -65,6 +75,7 @@ target_sources(pipeline_core
 target_link_libraries(cpp_pipeline
     PRIVATE 
         pipeline_core
+        miniz
 )
 
 target_link_libraries(pipeline_core

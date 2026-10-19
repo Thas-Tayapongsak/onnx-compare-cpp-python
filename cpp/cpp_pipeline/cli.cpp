@@ -8,6 +8,8 @@
 
 namespace
 {
+    constexpr std::string_view kDefaultOutputFolder = "runs";
+
     void print_help(char *argv[])
     {
         std::cout
@@ -88,6 +90,34 @@ namespace
 
         return cpp_pipeline::ParseStatus::Success;
     }
+
+    cpp_pipeline::ParseStatus
+    validate_image_path(std::filesystem::path image_path)
+    {
+        if (!std::filesystem::is_regular_file(image_path))
+        {
+            cpp_pipeline::log_error(std::format(
+                "Error: Image file not found at {}", image_path.string()));
+            return cpp_pipeline::ParseStatus::Error;
+        }
+
+        return cpp_pipeline::ParseStatus::Success;
+    }
+
+    cpp_pipeline::ParseStatus
+    validate_output_folder_path(std::filesystem::path output_folder_path)
+    {
+        if (std::filesystem::exists(output_folder_path) &&
+            !std::filesystem::is_directory(output_folder_path))
+        {
+            cpp_pipeline::log_error(
+                std::format("Error: Output path {} is not a directory",
+                            output_folder_path.string()));
+            return cpp_pipeline::ParseStatus::Error;
+        }
+
+        return cpp_pipeline::ParseStatus::Success;
+    }
 } // namespace
 
 namespace cpp_pipeline
@@ -96,6 +126,8 @@ namespace cpp_pipeline
     {
         std::optional<std::filesystem::path> model_folder_path;
         std::optional<std::filesystem::path> model_onnx_path;
+        std::optional<std::filesystem::path> image_path;
+        std::optional<std::filesystem::path> output_folder_path;
 
         // Discover cli args
         for (int i = 1; i < argc; ++i)
@@ -120,6 +152,30 @@ namespace cpp_pipeline
                     return ParseStatus::Error;
                 }
             }
+            else if (arg == "--image")
+            {
+                std::string_view value;
+                if (!arg_is_given(i, argc, argv, arg, value))
+                {
+                    return ParseStatus::Error;
+                }
+                if (!arg_set_once(image_path, arg, value))
+                {
+                    return ParseStatus::Error;
+                }
+            }
+            else if (arg == "--output")
+            {
+                std::string_view value;
+                if (!arg_is_given(i, argc, argv, arg, value))
+                {
+                    return ParseStatus::Error;
+                }
+                if (!arg_set_once(output_folder_path, arg, value))
+                {
+                    return ParseStatus::Error;
+                }
+            }
             else
             {
                 std::cerr << "Error: Unknown argument: " << arg << "\n";
@@ -131,6 +187,11 @@ namespace cpp_pipeline
         if (!model_folder_path)
         {
             std::cerr << "Error: --model is required.\n";
+            return ParseStatus::Error;
+        }
+        if (!image_path)
+        {
+            std::cerr << "Error: --image is required.\n";
             return ParseStatus::Error;
         }
 
@@ -146,9 +207,22 @@ namespace cpp_pipeline
         {
             return ParseStatus::Error;
         }
+        if (validate_image_path(image_path.value()) == ParseStatus::Error)
+        {
+            return ParseStatus::Error;
+        }
+        if (!output_folder_path)
+        {
+            output_folder_path = kDefaultOutputFolder;
+        }
+        if (validate_output_folder_path(output_folder_path.value()) ==
+            ParseStatus::Error)
+        {
+            return ParseStatus::Error;
+        }
 
-        args =
-            InferenceArgs{model_folder_path.value(), model_onnx_path.value()};
+        args = InferenceArgs{model_folder_path.value(), model_onnx_path.value(),
+                             image_path.value(), output_folder_path.value()};
         return ParseStatus::Success;
     }
 } // namespace cpp_pipeline
