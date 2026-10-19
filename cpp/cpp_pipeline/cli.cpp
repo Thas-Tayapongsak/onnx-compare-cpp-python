@@ -5,9 +5,11 @@
 #include <format>
 #include <iostream>
 #include <optional>
+#include <string_view>
 
 namespace
 {
+    constexpr std::string_view kDefaultModelOnnxFileName = "model.onnx";
     constexpr std::string_view kDefaultOutputFolder = "runs";
 
     void print_help(char *argv[])
@@ -27,85 +29,87 @@ namespace
     }
 
     /// Validate argument present on assignment
-    bool arg_is_given(int &i, int argc, char *argv[], std::string_view flag,
-                      std::string_view &argvar)
+    cpp_pipeline::ParseStatus
+    parse_argument(int &i, int argc, char *argv[], std::string_view flag,
+                   std::optional<std::filesystem::path> &arg)
     {
-        if (i + 1 >= argc) // flag with no value at end
+        if (i + 1 >= argc) // check value after flag
         {
             cpp_pipeline::log_error(
                 std::format("Error: {} requires a value.", flag));
-            return false;
+            return cpp_pipeline::ParseStatus::Error;
         }
         const std::string_view value = argv[i + 1];
         if (value.empty() ||
-            value.starts_with('-')) // case --model --<flag> ...
+            value.starts_with('-')) // check value if empty/not given
         {
             cpp_pipeline::log_error(
                 std::format("Error: {} requires a value.", flag));
-            return false;
+            return cpp_pipeline::ParseStatus::Error;
         }
-        argvar = value;
-        ++i;
-        return true;
-    }
-
-    template <typename T>
-    bool arg_set_once(std::optional<T> &argvar, std::string_view flag,
-                      std::string_view value)
-    {
-        if (argvar.has_value())
+        if (arg.has_value()) // check if value is assigned once already
         {
             cpp_pipeline::log_error(
                 std::format("Error: {} can only be provided once.", flag));
+            return cpp_pipeline::ParseStatus::Error;
+        }
+        arg = value;
+        ++i;
+        return cpp_pipeline::ParseStatus::Success;
+    }
+
+    bool validate_required_arg(std::string_view flag,
+                               const std::optional<std::filesystem::path> &arg)
+    {
+        if (!arg.has_value())
+        {
+            cpp_pipeline::log_error(
+                std::format("Error: {} is required.", flag));
             return false;
         }
-        argvar = value;
         return true;
     }
 
-    cpp_pipeline::ParseStatus
-    validate_model_folder_path(std::filesystem::path model_folder_path)
+    bool
+    validate_model_folder_path(const std::filesystem::path &model_folder_path)
     {
         if (!std::filesystem::is_directory(model_folder_path))
         {
             cpp_pipeline::log_error(
                 std::format("Error: Model folder not found: {}",
                             model_folder_path.string()));
-            return cpp_pipeline::ParseStatus::Error;
+            return false;
         }
 
-        return cpp_pipeline::ParseStatus::Success;
+        return true;
     }
 
-    cpp_pipeline::ParseStatus
-    validate_model_onnx_path(std::filesystem::path model_onnx_path)
+    bool validate_model_onnx_path(const std::filesystem::path &model_onnx_path)
     {
         if (!std::filesystem::is_regular_file(model_onnx_path))
         {
-            cpp_pipeline::log_error(
-                std::format("Error: `model.onnx` not found in {}",
-                            model_onnx_path.string()));
-            return cpp_pipeline::ParseStatus::Error;
+            cpp_pipeline::log_error(std::format(
+                "Error: Model file not found: {}", model_onnx_path.string()));
+            return false;
         }
 
-        return cpp_pipeline::ParseStatus::Success;
+        return true;
     }
 
-    cpp_pipeline::ParseStatus
-    validate_image_path(std::filesystem::path image_path)
+    bool validate_image_path(const std::filesystem::path &image_path)
     {
         if (!std::filesystem::is_regular_file(image_path))
         {
             cpp_pipeline::log_error(std::format(
                 "Error: Image file not found at {}", image_path.string()));
-            return cpp_pipeline::ParseStatus::Error;
+            return false;
         }
 
-        return cpp_pipeline::ParseStatus::Success;
+        return true;
     }
 
-    cpp_pipeline::ParseStatus
-    validate_output_folder_path(std::filesystem::path output_folder_path)
+    bool
+    validate_output_folder_path(const std::filesystem::path &output_folder_path)
     {
         if (std::filesystem::exists(output_folder_path) &&
             !std::filesystem::is_directory(output_folder_path))
@@ -113,10 +117,9 @@ namespace
             cpp_pipeline::log_error(
                 std::format("Error: Output path {} is not a directory",
                             output_folder_path.string()));
-            return cpp_pipeline::ParseStatus::Error;
+            return false;
         }
-
-        return cpp_pipeline::ParseStatus::Success;
+        return true;
     }
 } // namespace
 
@@ -132,91 +135,57 @@ namespace cpp_pipeline
         // Discover cli args
         for (int i = 1; i < argc; ++i)
         {
-            const std::string_view arg = argv[i];
+            const std::string_view flag = argv[i];
+            ParseStatus status = ParseStatus::Success;
 
-            if (arg == "-h" || arg == "--help")
+            if (flag == "-h" || flag == "--help")
             {
                 print_help(argv);
                 return ParseStatus::Help;
             }
 
-            if (arg == "--model")
+            if (flag == "--model")
             {
-                std::string_view value;
-                if (!arg_is_given(i, argc, argv, arg, value))
-                {
-                    return ParseStatus::Error;
-                }
-                if (!arg_set_once(model_folder_path, arg, value))
-                {
-                    return ParseStatus::Error;
-                }
+                status = parse_argument(i, argc, argv, flag, model_folder_path);
             }
-            else if (arg == "--image")
+            else if (flag == "--image")
             {
-                std::string_view value;
-                if (!arg_is_given(i, argc, argv, arg, value))
-                {
-                    return ParseStatus::Error;
-                }
-                if (!arg_set_once(image_path, arg, value))
-                {
-                    return ParseStatus::Error;
-                }
+                status = parse_argument(i, argc, argv, flag, image_path);
             }
-            else if (arg == "--output")
+            else if (flag == "--output")
             {
-                std::string_view value;
-                if (!arg_is_given(i, argc, argv, arg, value))
-                {
-                    return ParseStatus::Error;
-                }
-                if (!arg_set_once(output_folder_path, arg, value))
-                {
-                    return ParseStatus::Error;
-                }
+                status =
+                    parse_argument(i, argc, argv, flag, output_folder_path);
             }
             else
             {
-                std::cerr << "Error: Unknown argument: " << arg << "\n";
-                return ParseStatus::Error;
+                log_error(std::format("Error: Unknown argument: {}", flag));
+                status = ParseStatus::Error;
+            }
+
+            if (status != ParseStatus::Success)
+            {
+                return status;
             }
         }
 
         // Check required args
-        if (!model_folder_path)
+        if (!validate_required_arg("--model", model_folder_path) ||
+            !validate_required_arg("--image", image_path))
         {
-            std::cerr << "Error: --model is required.\n";
-            return ParseStatus::Error;
-        }
-        if (!image_path)
-        {
-            std::cerr << "Error: --image is required.\n";
             return ParseStatus::Error;
         }
 
         // Validate args
-        if (validate_model_folder_path(model_folder_path.value()) ==
-            ParseStatus::Error)
-        {
-            return ParseStatus::Error;
-        }
-        model_onnx_path = model_folder_path.value() / "model.onnx";
-        if (validate_model_onnx_path(model_onnx_path.value()) ==
-            ParseStatus::Error)
-        {
-            return ParseStatus::Error;
-        }
-        if (validate_image_path(image_path.value()) == ParseStatus::Error)
-        {
-            return ParseStatus::Error;
-        }
+        model_onnx_path = model_folder_path.value() / kDefaultModelOnnxFileName;
         if (!output_folder_path)
         {
             output_folder_path = kDefaultOutputFolder;
         }
-        if (validate_output_folder_path(output_folder_path.value()) ==
-            ParseStatus::Error)
+        if (!validate_model_folder_path(model_folder_path.value()) ||
+            !validate_model_onnx_path(model_onnx_path.value()) ||
+            !validate_image_path(image_path.value()) ||
+            !validate_output_folder_path(output_folder_path.value()))
         {
             return ParseStatus::Error;
         }
