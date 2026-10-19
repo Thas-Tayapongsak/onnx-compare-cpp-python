@@ -53,7 +53,6 @@ target_sources(cpp_pipeline
         cpp_pipeline/cli.cpp
         cpp_pipeline/log.cpp
         cpp_pipeline/results.cpp
-        cpp_pipeline/stub.cpp
         cpp_pipeline/npz.cpp
 )
 
@@ -64,13 +63,23 @@ add_library(pipeline_core::pipeline_core
 )
 target_sources(pipeline_core
     PRIVATE 
-        pipeline_core/src/core.cpp 
+        pipeline_core/src/pipeline.cpp
+        pipeline_core/src/stub.cpp
     
     PUBLIC 
         FILE_SET HEADERS 
         BASE_DIRS pipeline_core/include 
         FILES 
+            pipeline_core/include/pipeline_core/array.h
             pipeline_core/include/pipeline_core/core.h
+            pipeline_core/include/pipeline_core/pipeline.h
+            pipeline_core/include/pipeline_core/results.h
+            pipeline_core/include/pipeline_core/run.h
+            pipeline_core/include/pipeline_core/stub.h
+)
+target_include_directories(pipeline_core
+    PUBLIC
+        pipeline_core/include
 )
 
 target_link_libraries(cpp_pipeline

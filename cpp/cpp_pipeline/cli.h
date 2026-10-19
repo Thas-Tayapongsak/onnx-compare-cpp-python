@@ -1,16 +1,10 @@
 #pragma once
 
-#include <filesystem>
+#include <pipeline_core/run.h>
 
 namespace cpp_pipeline
 {
-    struct ParsedArgs
-    {
-        std::filesystem::path model_folder_path;
-        std::filesystem::path model_onnx_path;
-        std::filesystem::path image_path;
-        std::filesystem::path output_folder_path;
-    };
+    using ParsedArgs = pipeline_core::ParsedArgs;
 
     enum class ParseStatus
     {

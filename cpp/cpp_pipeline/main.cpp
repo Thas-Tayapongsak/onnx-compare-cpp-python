@@ -1,10 +1,49 @@
 #include "cli.h"
 #include "log.h"
 #include "results.h"
-#include "stub.h"
 
+#include <pipeline_core/core.h>
+
+#include <cstddef>
+#include <cstdint>
 #include <exception>
 #include <format>
+#include <utility>
+#include <vector>
+
+namespace
+{
+    constexpr double kDefaultConfidenceThreshold = 0.05;
+    constexpr double kDefaultNmsIouThreshold = 0.7;
+    constexpr std::size_t kDefaultBatch = 1;
+    constexpr std::size_t kDefaultChannels = 3;
+    constexpr std::size_t kDefaultTargetHeight = 64;
+    constexpr std::size_t kDefaultTargetWidth = 64;
+
+    pipeline_core::RunInput
+    build_run_input(const pipeline_core::ParsedArgs &parsed_args)
+    {
+        pipeline_core::InferencePayload payload;
+        const std::size_t pixel_count = kDefaultBatch * kDefaultChannels *
+                                        kDefaultTargetHeight *
+                                        kDefaultTargetWidth;
+        payload.pixel_values = pipeline_core::NDArray<float>{
+            {kDefaultBatch, kDefaultChannels, kDefaultTargetHeight,
+             kDefaultTargetWidth},
+            std::vector<float>(pixel_count, 0.0F)};
+        payload.confidence_threshold = kDefaultConfidenceThreshold;
+        payload.nms_iou_threshold = kDefaultNmsIouThreshold;
+        payload.target_sizes = pipeline_core::NDArray<std::int64_t>{
+            {1, 2},
+            {static_cast<std::int64_t>(kDefaultTargetHeight),
+             static_cast<std::int64_t>(kDefaultTargetWidth)}};
+
+        pipeline_core::RunInput run_input;
+        run_input.parsed_args = parsed_args;
+        run_input.inference_payloads.push_back(std::move(payload));
+        return run_input;
+    }
+} // namespace
 
 int main(int argc, char *argv[])
 {
@@ -33,10 +72,14 @@ int main(int argc, char *argv[])
 
     try
     {
+        const pipeline_core::RunInput run_input = build_run_input(parsed_args);
         cpp_pipeline::prepare_output_dir(parsed_args.output_folder_path);
+        const pipeline_core::RunOutput run_output =
+            pipeline_core::run_pipeline(run_input);
         cpp_pipeline::write_outputs(parsed_args.output_folder_path,
-                                    cpp_pipeline::run_stub());
-        cpp_pipeline::write_meta(parsed_args.output_folder_path);
+                                    run_output.results);
+        cpp_pipeline::write_meta(parsed_args.output_folder_path,
+                                 run_output.meta);
     }
     catch (const std::exception &error)
     {
