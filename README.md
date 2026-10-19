@@ -100,15 +100,23 @@ width.
 `meta.json` holds the run details: `pipeline`, `model`, `input_image`,
 `confidence_threshold`, `nms_iou_threshold`, `target_sizes`, `created_utc`,
 `setup_ms`, `preprocess_ms`, `inference_ms`, `postprocess_ms`,
-`duration_ms`, `execution_provider`, `cpu`, `gpu`, `ram_gb`, and `vram_gb`.
+`duration_ms`, `execution_provider`, `cpu`, `gpu`, `setup_ram_gb`,
+`preprocess_ram_gb`, `inference_ram_gb`, `postprocess_ram_gb`, `ram_gb`,
+`setup_vram_gb`, `preprocess_vram_gb`, `inference_vram_gb`,
+`postprocess_vram_gb`, and `vram_gb`.
 The `*_ms` fields are integer milliseconds. `setup_ms` is measured once per
 run. The preprocess, inference, and postprocess fields are medians across the
 inference payloads, one sample per payload. `duration_ms` is the median
 payload time from preprocess through postprocess; it excludes setup.
 
 `cpu` is the machine CPU name. `gpu` is the CUDA device used by the process,
-or `null`. `ram_gb` is the peak working set of the pipeline process.
-`vram_gb` is the VRAM used by the process; it is `0` when no CUDA device is
-used. The `_gb` fields use 2^30 bytes.
+or `null`. The RAM fields are the working set of the pipeline process, not the
+total machine memory. The memory sampler takes a sample every 50 ms. A stage
+RAM field is the highest sample during that stage. The payload-stage values
+are maxima across the payloads, and `ram_gb` is the whole-run sampled peak
+through output writing. The 50 ms interval limits interference with stage
+timings; a shorter allocation can be missed. The VRAM fields are the VRAM used
+by the process. They are `0` when no CUDA device is used. The `_gb` fields use
+2^30 bytes.
 
 Load `outputs.npz` with `numpy.load` and `meta.json` with `json.load`.

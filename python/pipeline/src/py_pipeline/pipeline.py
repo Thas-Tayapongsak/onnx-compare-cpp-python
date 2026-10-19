@@ -5,7 +5,6 @@ __all__ = [
     "inference",
     "postprocess",
     "preprocess",
-    "run_pipeline",
     "setup",
 ]
 
@@ -15,6 +14,7 @@ from statistics import median
 from time import perf_counter
 
 from .machine import read_machine_info
+from .memory import MemoryMonitor
 from .results import (
     InstanceSegmentationInferenceResults,
     MetaResults,
@@ -66,32 +66,41 @@ def _median_ms(samples: list[int]) -> int:
     return int(median(samples))
 
 
-def run_pipeline(run_input: RunInput) -> RunOutput:
-    """Run the stages, collect the timings, and build the output."""
+def _run_pipeline(run_input: RunInput, memory: MemoryMonitor) -> RunOutput:
+    """Run the stages and build the output for the caller to finalize."""
+    if not run_input.inference_payloads:
+        raise RuntimeError("No inference payloads were run")
+
     preprocess_samples: list[int] = []
     inference_samples: list[int] = []
     postprocess_samples: list[int] = []
     total_samples: list[int] = []
     results_list: list[InstanceSegmentationInferenceResults] = []
-    first_payload: InferencePayload | None = None
+    first_payload = run_input.inference_payloads[0]
 
     created_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     machine_info = read_machine_info()
+    memory.enter_stage("setup")
     setup_start = perf_counter()
     state = setup(run_input)
     setup_ms = _elapsed_ms(setup_start)
 
-    for payload in run_input.inference_payloads:
+    for index, payload in enumerate(run_input.inference_payloads):
+        memory.enter_stage("preprocess")
         total_start = perf_counter()
 
         start = perf_counter()
         processed_payload = preprocess(payload, state)
         preprocess_samples.append(_elapsed_ms(start))
+        if index == 0:
+            first_payload = processed_payload
 
+        memory.enter_stage("inference")
         start = perf_counter()
         raw_results = inference(processed_payload, state)
         inference_samples.append(_elapsed_ms(start))
 
+        memory.enter_stage("postprocess")
         start = perf_counter()
         results = postprocess(raw_results, processed_payload)
         postprocess_samples.append(_elapsed_ms(start))
@@ -99,11 +108,7 @@ def run_pipeline(run_input: RunInput) -> RunOutput:
         total_samples.append(_elapsed_ms(total_start))
         results_list.append(results)
 
-        if first_payload is None:
-            first_payload = processed_payload
-
-    if first_payload is None:
-        raise RuntimeError("No inference payloads were run")
+    memory.enter_stage("output")
 
     timings = RunTimings(
         setup_ms=setup_ms,
@@ -128,7 +133,15 @@ def run_pipeline(run_input: RunInput) -> RunOutput:
         execution_provider="stub",
         cpu=machine_info.cpu,
         gpu=machine_info.gpu,
-        ram_gb=machine_info.ram_gb,
-        vram_gb=machine_info.vram_gb,
+        setup_ram_gb=memory.stage_ram_gb("setup"),
+        preprocess_ram_gb=memory.stage_ram_gb("preprocess"),
+        inference_ram_gb=memory.stage_ram_gb("inference"),
+        postprocess_ram_gb=memory.stage_ram_gb("postprocess"),
+        ram_gb=memory.peak_ram_gb,
+        setup_vram_gb=0.0,
+        preprocess_vram_gb=0.0,
+        inference_vram_gb=0.0,
+        postprocess_vram_gb=0.0,
+        vram_gb=0.0,
     )
     return RunOutput(results=results_list, meta=meta, timings=timings)

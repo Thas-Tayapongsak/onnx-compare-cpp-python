@@ -50,7 +50,15 @@ class MetaResults:
     execution_provider: str
     cpu: str
     gpu: str | None
+    setup_ram_gb: float
+    preprocess_ram_gb: float
+    inference_ram_gb: float
+    postprocess_ram_gb: float
     ram_gb: float
+    setup_vram_gb: float
+    preprocess_vram_gb: float
+    inference_vram_gb: float
+    postprocess_vram_gb: float
     vram_gb: float
 
 
