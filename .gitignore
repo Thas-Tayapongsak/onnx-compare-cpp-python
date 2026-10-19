@@ -1,5 +1,6 @@
 # Agent
 .agents/
+.kilo/
 KANBAN.md
 AGENTS.md
 _BLUEPRINT.md
