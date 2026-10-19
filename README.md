@@ -101,7 +101,9 @@ width.
 `confidence_threshold`, `nms_iou_threshold`, `target_sizes`, `created_utc`,
 `setup_ms`, `preprocess_ms`, `inference_ms`, `postprocess_ms`,
 `duration_ms`, `execution_provider`, `cpu`, `gpu`, `ram_gb`, and `vram_gb`.
-The `*_ms` fields are integer milliseconds. The stage fields are medians of
-three runs, and `duration_ms` is the median total.
+The `*_ms` fields are integer milliseconds. `setup_ms` is measured once per
+run. The preprocess, inference, and postprocess fields are medians across the
+inference payloads, one sample per payload. `duration_ms` is the median
+payload time from preprocess through postprocess; it excludes setup.
 
 Load `outputs.npz` with `numpy.load` and `meta.json` with `json.load`.

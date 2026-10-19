@@ -48,7 +48,11 @@ class MetaResults:
 
 @dataclass
 class RunTimings:
-    """Median stage durations for one run."""
+    """Timing results for one run.
+
+    `setup_ms` is one setup measurement. The other fields are medians across
+    the inference payloads.
+    """
 
     setup_ms: int
     preprocess_ms: int
@@ -59,9 +63,9 @@ class RunTimings:
 
 @dataclass
 class RunOutput:
-    """Model results, run details, and timing results for one run."""
+    """Model results for each payload, run details, and timing results."""
 
-    results: InstanceSegmentationInferenceResults
+    results: list[InstanceSegmentationInferenceResults]
     meta: MetaResults
     timings: RunTimings
 
@@ -77,16 +81,22 @@ def prepare_output_dir(path: Path) -> None:
 
 def write_outputs(
     output_dir: Path,
-    results: InstanceSegmentationInferenceResults,
+    results: list[InstanceSegmentationInferenceResults],
 ) -> None:
-    """Write the five result arrays to `outputs.npz`."""
+    """Write the single result's five arrays to `outputs.npz`."""
+    if len(results) != 1:
+        raise ValueError(
+            "outputs.npz supports exactly one inference result; "
+            f"got {len(results)}"
+        )
+    result = results[0]
     np.savez(
         output_dir / "outputs.npz",
-        num_predictions=results.num_predictions,
-        scores=results.scores,
-        labels=results.labels,
-        boxes=results.boxes,
-        masks=results.masks,
+        num_predictions=result.num_predictions,
+        scores=result.scores,
+        labels=result.labels,
+        boxes=result.boxes,
+        masks=result.masks,
     )
     logger.info("`outputs.npz` written")
 

@@ -23,8 +23,6 @@ from .results import (
 from .run import InferencePayload, RunInput
 from .stub import run_stub
 
-TIMING_RUNS = 3
-
 
 @dataclass
 class RunState:
@@ -36,9 +34,9 @@ def setup(run_input: RunInput) -> RunState:
     return RunState()
 
 
-def preprocess(run_input: RunInput, state: RunState) -> InferencePayload:
+def preprocess(payload: InferencePayload, state: RunState) -> InferencePayload:
     """Return the session inputs; preprocessing is deferred."""
-    return run_input.inference_payloads[0]
+    return payload
 
 
 def inference(
@@ -68,46 +66,45 @@ def _median_ms(samples: list[int]) -> int:
 
 
 def run_pipeline(run_input: RunInput) -> RunOutput:
-    """Run the stages, take the median timings, and build the output."""
-    created_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    setup_samples: list[int] = []
+    """Run the stages, collect the timings, and build the output."""
     preprocess_samples: list[int] = []
     inference_samples: list[int] = []
     postprocess_samples: list[int] = []
     total_samples: list[int] = []
+    results_list: list[InstanceSegmentationInferenceResults] = []
     first_payload: InferencePayload | None = None
-    first_results: InstanceSegmentationInferenceResults | None = None
 
-    for _ in range(TIMING_RUNS):
+    created_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    setup_start = perf_counter()
+    state = setup(run_input)
+    setup_ms = _elapsed_ms(setup_start)
+
+    for payload in run_input.inference_payloads:
         total_start = perf_counter()
 
         start = perf_counter()
-        state = setup(run_input)
-        setup_samples.append(_elapsed_ms(start))
-
-        start = perf_counter()
-        payload = preprocess(run_input, state)
+        processed_payload = preprocess(payload, state)
         preprocess_samples.append(_elapsed_ms(start))
 
         start = perf_counter()
-        raw_results = inference(payload, state)
+        raw_results = inference(processed_payload, state)
         inference_samples.append(_elapsed_ms(start))
 
         start = perf_counter()
-        results = postprocess(raw_results, payload)
+        results = postprocess(raw_results, processed_payload)
         postprocess_samples.append(_elapsed_ms(start))
 
         total_samples.append(_elapsed_ms(total_start))
+        results_list.append(results)
 
-        if first_results is None:
-            first_results = results
-            first_payload = payload
+        if first_payload is None:
+            first_payload = processed_payload
 
-    if first_results is None or first_payload is None:
-        raise RuntimeError("No pipeline run completed")
+    if first_payload is None:
+        raise RuntimeError("No inference payloads were run")
 
     timings = RunTimings(
-        setup_ms=_median_ms(setup_samples),
+        setup_ms=setup_ms,
         preprocess_ms=_median_ms(preprocess_samples),
         inference_ms=_median_ms(inference_samples),
         postprocess_ms=_median_ms(postprocess_samples),
@@ -124,4 +121,4 @@ def run_pipeline(run_input: RunInput) -> RunOutput:
         duration_ms=timings.duration_ms,
         execution_provider="stub",
     )
-    return RunOutput(results=first_results, meta=meta, timings=timings)
+    return RunOutput(results=results_list, meta=meta, timings=timings)
