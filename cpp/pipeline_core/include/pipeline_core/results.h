@@ -3,6 +3,7 @@
 #include "pipeline_core/array.h"
 
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -32,6 +33,8 @@ namespace pipeline_core
         std::int64_t postprocess_ms{0};
         std::int64_t duration_ms{0};
         std::string execution_provider;
+        std::string cpu;
+        std::optional<std::string> gpu;
     };
 
     struct RunTimings

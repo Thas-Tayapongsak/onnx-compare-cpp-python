@@ -119,6 +119,17 @@ namespace
         out << ", \"duration_ms\": " << meta.duration_ms;
         out << ", \"execution_provider\": ";
         write_json_string(out, meta.execution_provider);
+        out << ", \"cpu\": ";
+        write_json_string(out, meta.cpu);
+        out << ", \"gpu\": ";
+        if (meta.gpu.has_value())
+        {
+            write_json_string(out, *meta.gpu);
+        }
+        else
+        {
+            out << "null";
+        }
         out << '}';
     }
 } // namespace

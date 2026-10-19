@@ -1,5 +1,6 @@
 #include "pipeline_core/pipeline.h"
 
+#include "pipeline_core/machine.h"
 #include "pipeline_core/stub.h"
 #include "run_support.h"
 
@@ -58,6 +59,7 @@ namespace pipeline_core
         std::optional<InferencePayload> first_payload;
 
         const std::string created_utc = utc_now();
+        const MachineInfo machine = read_machine_info();
         const Clock::time_point setup_start = Clock::now();
         RunState state = setup(run_input);
         const int setup_ms = elapsed_ms(setup_start);
@@ -115,6 +117,8 @@ namespace pipeline_core
             .postprocess_ms = timings.postprocess_ms,
             .duration_ms = timings.duration_ms,
             .execution_provider = "stub",
+            .cpu = machine.cpu,
+            .gpu = machine.gpu,
         };
         return RunOutput{std::move(results), std::move(meta), timings};
     }

@@ -64,6 +64,7 @@ add_library(pipeline_core::pipeline_core
 )
 target_sources(pipeline_core
     PRIVATE 
+        pipeline_core/src/machine.cpp
         pipeline_core/src/pipeline.cpp
         pipeline_core/src/run_support.cpp
         pipeline_core/src/stub.cpp
@@ -74,6 +75,7 @@ target_sources(pipeline_core
         FILES 
             pipeline_core/include/pipeline_core/array.h
             pipeline_core/include/pipeline_core/core.h
+            pipeline_core/include/pipeline_core/machine.h
             pipeline_core/include/pipeline_core/pipeline.h
             pipeline_core/include/pipeline_core/results.h
             pipeline_core/include/pipeline_core/run.h
@@ -93,4 +95,5 @@ target_link_libraries(cpp_pipeline
 target_link_libraries(pipeline_core
     PRIVATE 
         onnxruntime::onnxruntime
+        advapi32
 )
