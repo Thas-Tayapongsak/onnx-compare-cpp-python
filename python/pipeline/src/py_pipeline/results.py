@@ -42,8 +42,24 @@ class MetaResults:
     nms_iou_threshold: float
     target_sizes: list[list[int]]
     created_utc: str
+    setup_ms: int
+    preprocess_ms: int
+    inference_ms: int
+    postprocess_ms: int
     duration_ms: int
     execution_provider: str
+    cpu: str
+    gpu: str | None
+    setup_ram_gb: float
+    preprocess_ram_gb: float
+    inference_ram_gb: float
+    postprocess_ram_gb: float
+    ram_gb: float
+    setup_vram_gb: float
+    preprocess_vram_gb: float
+    inference_vram_gb: float
+    postprocess_vram_gb: float
+    vram_gb: float
 
 
 @dataclass

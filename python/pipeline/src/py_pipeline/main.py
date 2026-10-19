@@ -8,7 +8,8 @@ import sys
 import numpy as np
 
 from .cli import ParsedArgs, build_parsed_args, parse_args
-from .pipeline import run_pipeline
+from .memory import MemoryMonitor
+from .pipeline import _run_pipeline
 from .results import prepare_output_dir, write_meta, write_outputs
 from .run import InferencePayload, RunInput
 
@@ -53,12 +54,20 @@ def pipeline_main() -> None:
     logger.info(f"Image path: {parsed_args.image_path}")
     logger.info(f"Output folder path: {parsed_args.output_folder_path}")
 
-    run_input = build_run_input(parsed_args)
+    memory = MemoryMonitor()
+    try:
+        memory.start()
+        memory.enter_stage("startup")
+        run_input = build_run_input(parsed_args)
 
-    logger.info("===========================")
-    logger.info("Running inference pipeline")
-    prepare_output_dir(parsed_args.output_folder_path)
-    run_output = run_pipeline(run_input)
-    write_outputs(parsed_args.output_folder_path, run_output.results)
-    write_meta(parsed_args.output_folder_path, run_output.meta)
+        logger.info("===========================")
+        logger.info("Running inference pipeline")
+        prepare_output_dir(parsed_args.output_folder_path)
+        run_output = _run_pipeline(run_input, memory)
+        write_outputs(parsed_args.output_folder_path, run_output.results)
+        memory.stop()
+        run_output.meta.ram_gb = memory.peak_ram_gb
+        write_meta(parsed_args.output_folder_path, run_output.meta)
+    finally:
+        memory.stop()
     logger.info("===========================")
