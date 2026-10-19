@@ -102,15 +102,19 @@ namespace pipeline_core
             median_ms(total_samples),
         };
         MetaResults meta{
-            "cpp",
-            file_name(run_input.parsed_args.model_folder_path),
-            file_name(run_input.parsed_args.image_path),
-            first_payload->confidence_threshold,
-            first_payload->nms_iou_threshold,
-            target_sizes_list(first_payload->target_sizes),
-            created_utc,
-            timings.duration_ms,
-            "stub",
+            .pipeline = "cpp",
+            .model = file_name(run_input.parsed_args.model_folder_path),
+            .input_image = file_name(run_input.parsed_args.image_path),
+            .confidence_threshold = first_payload->confidence_threshold,
+            .nms_iou_threshold = first_payload->nms_iou_threshold,
+            .target_sizes = target_sizes_list(first_payload->target_sizes),
+            .created_utc = created_utc,
+            .setup_ms = timings.setup_ms,
+            .preprocess_ms = timings.preprocess_ms,
+            .inference_ms = timings.inference_ms,
+            .postprocess_ms = timings.postprocess_ms,
+            .duration_ms = timings.duration_ms,
+            .execution_provider = "stub",
         };
         return RunOutput{std::move(results), std::move(meta), timings};
     }

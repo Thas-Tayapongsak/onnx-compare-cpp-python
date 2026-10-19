@@ -102,6 +102,10 @@ namespace
         write_target_sizes(out, meta.target_sizes);
         out << ", \"created_utc\": ";
         write_json_string(out, meta.created_utc);
+        out << ", \"setup_ms\": " << meta.setup_ms;
+        out << ", \"preprocess_ms\": " << meta.preprocess_ms;
+        out << ", \"inference_ms\": " << meta.inference_ms;
+        out << ", \"postprocess_ms\": " << meta.postprocess_ms;
         out << ", \"duration_ms\": " << meta.duration_ms;
         out << ", \"execution_provider\": ";
         write_json_string(out, meta.execution_provider);
