@@ -1,6 +1,7 @@
 """Run folders and pipeline subprocesses."""
 
 import logging
+import os
 import subprocess
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -79,7 +80,9 @@ def run_cpp_pipeline(args: CompareArgs, output_folder: Path) -> None:
 def _run_command(command: list[str], name: str) -> None:
     """Run one pipeline and raise when it fails."""
     logger.info(f"Running the {name} pipeline")
-    result = subprocess.run(command, check=False)
+    environment = os.environ.copy()
+    environment.pop("VIRTUAL_ENV", None)
+    result = subprocess.run(command, check=False, env=environment)
     if result.returncode != 0:
         raise RuntimeError(
             f"The {name} pipeline failed with exit code {result.returncode}"

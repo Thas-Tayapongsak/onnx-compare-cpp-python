@@ -12,6 +12,7 @@ from .pipelines import (
     run_cpp_pipeline,
     run_python_pipeline,
 )
+from .report import compare_outputs, write_report
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +49,8 @@ def compare_main() -> None:
         logger.info(f"Run folder path: {paths.run_folder}")
         run_python_pipeline(args, paths.python_output)
         run_cpp_pipeline(args, paths.cpp_output)
+        report = compare_outputs(paths.python_output, paths.cpp_output)
+        write_report(paths.run_folder, report)
     except Exception as error:
         logger.error(f"Comparison failed: {error}")
         sys.exit(1)
