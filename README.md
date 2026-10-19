@@ -67,6 +67,9 @@ and is the root that holds the run folder. The program creates
 `<run root>/<YYYYMMDDTHHMMSSZ>-<model folder name>/`, runs both pipelines into
 its `python/` and `cpp/` folders, and writes `report.json`.
 
+`scripts/compare.ps1` passes `--model`, `--image`, and `--output` to `compare`.
+Run it from the repository root so relative paths resolve there.
+
 ## Models and input images
 
 `onnx/` holds one folder per model, with `model.onnx` and its config files. Other JSON files are training metadata which may be useful.
