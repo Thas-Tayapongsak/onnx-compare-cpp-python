@@ -130,6 +130,26 @@ namespace
         {
             out << "null";
         }
+        out << ", \"setup_ram_gb\": ";
+        write_json_number(out, meta.setup_ram_gb);
+        out << ", \"preprocess_ram_gb\": ";
+        write_json_number(out, meta.preprocess_ram_gb);
+        out << ", \"inference_ram_gb\": ";
+        write_json_number(out, meta.inference_ram_gb);
+        out << ", \"postprocess_ram_gb\": ";
+        write_json_number(out, meta.postprocess_ram_gb);
+        out << ", \"ram_gb\": ";
+        write_json_number(out, meta.ram_gb);
+        out << ", \"setup_vram_gb\": ";
+        write_json_number(out, meta.setup_vram_gb);
+        out << ", \"preprocess_vram_gb\": ";
+        write_json_number(out, meta.preprocess_vram_gb);
+        out << ", \"inference_vram_gb\": ";
+        write_json_number(out, meta.inference_vram_gb);
+        out << ", \"postprocess_vram_gb\": ";
+        write_json_number(out, meta.postprocess_vram_gb);
+        out << ", \"vram_gb\": ";
+        write_json_number(out, meta.vram_gb);
         out << '}';
     }
 } // namespace

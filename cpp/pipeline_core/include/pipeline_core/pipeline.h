@@ -1,5 +1,6 @@
 #pragma once
 
+#include "pipeline_core/memory.h"
 #include "pipeline_core/results.h"
 #include "pipeline_core/run.h"
 
@@ -21,5 +22,5 @@ namespace pipeline_core
     postprocess(InstanceSegmentationInferenceResults results,
                 const InferencePayload &payload);
 
-    RunOutput run_pipeline(const RunInput &run_input);
+    RunOutput run_pipeline(const RunInput &run_input, MemoryMonitor &memory);
 } // namespace pipeline_core

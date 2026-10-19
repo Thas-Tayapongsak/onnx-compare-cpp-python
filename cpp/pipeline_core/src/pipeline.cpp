@@ -49,8 +49,13 @@ namespace pipeline_core
         return results;
     }
 
-    RunOutput run_pipeline(const RunInput &run_input)
+    RunOutput run_pipeline(const RunInput &run_input, MemoryMonitor &memory)
     {
+        if (run_input.inference_payloads.empty())
+        {
+            throw std::runtime_error("No inference payloads were run");
+        }
+
         std::vector<int> preprocess_samples;
         std::vector<int> inference_samples;
         std::vector<int> postprocess_samples;
@@ -60,23 +65,28 @@ namespace pipeline_core
 
         const std::string created_utc = utc_now();
         const MachineInfo machine = read_machine_info();
+
+        memory.enter_stage("setup");
         const Clock::time_point setup_start = Clock::now();
         RunState state = setup(run_input);
         const int setup_ms = elapsed_ms(setup_start);
 
         for (const InferencePayload &payload : run_input.inference_payloads)
         {
+            memory.enter_stage("preprocess");
             const Clock::time_point total_start = Clock::now();
 
             Clock::time_point start = Clock::now();
             InferencePayload processed_payload = preprocess(payload, state);
             preprocess_samples.push_back(elapsed_ms(start));
 
+            memory.enter_stage("inference");
             start = Clock::now();
             InstanceSegmentationInferenceResults raw_results =
                 inference(processed_payload, state);
             inference_samples.push_back(elapsed_ms(start));
 
+            memory.enter_stage("postprocess");
             start = Clock::now();
             InstanceSegmentationInferenceResults final_results =
                 postprocess(std::move(raw_results), processed_payload);
@@ -93,8 +103,10 @@ namespace pipeline_core
 
         if (!first_payload.has_value())
         {
-            throw std::runtime_error("No inference payloads were run");
+            throw std::runtime_error("No processed inference payload");
         }
+
+        memory.enter_stage("output");
 
         const RunTimings timings{
             setup_ms,
@@ -119,6 +131,16 @@ namespace pipeline_core
             .execution_provider = "stub",
             .cpu = machine.cpu,
             .gpu = machine.gpu,
+            .setup_ram_gb = memory.stage_ram_gb("setup"),
+            .preprocess_ram_gb = memory.stage_ram_gb("preprocess"),
+            .inference_ram_gb = memory.stage_ram_gb("inference"),
+            .postprocess_ram_gb = memory.stage_ram_gb("postprocess"),
+            .ram_gb = memory.peak_ram_gb(),
+            .setup_vram_gb = 0.0,
+            .preprocess_vram_gb = 0.0,
+            .inference_vram_gb = 0.0,
+            .postprocess_vram_gb = 0.0,
+            .vram_gb = 0.0,
         };
         return RunOutput{std::move(results), std::move(meta), timings};
     }

@@ -35,6 +35,16 @@ namespace pipeline_core
         std::string execution_provider;
         std::string cpu;
         std::optional<std::string> gpu;
+        double setup_ram_gb{0.0};
+        double preprocess_ram_gb{0.0};
+        double inference_ram_gb{0.0};
+        double postprocess_ram_gb{0.0};
+        double ram_gb{0.0};
+        double setup_vram_gb{0.0};
+        double preprocess_vram_gb{0.0};
+        double inference_vram_gb{0.0};
+        double postprocess_vram_gb{0.0};
+        double vram_gb{0.0};
     };
 
     struct RunTimings
