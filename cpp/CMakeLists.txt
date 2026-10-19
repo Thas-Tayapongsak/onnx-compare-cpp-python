@@ -52,6 +52,7 @@ target_sources(cpp_pipeline
         cpp_pipeline/main.cpp
         cpp_pipeline/cli.cpp
         cpp_pipeline/log.cpp
+        cpp_pipeline/meta_json.cpp
         cpp_pipeline/results.cpp
         cpp_pipeline/npz.cpp
 )
