@@ -11,7 +11,7 @@ __all__ = [
 
 import json
 import logging
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from pathlib import Path
 
 import numpy as np
@@ -80,8 +80,9 @@ def write_outputs(
 
 def write_meta(
     output_dir: Path,
+    meta: MetaResults,
 ) -> None:
-    """Write `meta.json` with the pipeline name."""
+    """Write `meta.json` from the meta results."""
     with (output_dir / "meta.json").open("w", encoding="utf-8") as file:
-        json.dump({"pipeline": "python"}, file)
+        json.dump(asdict(meta), file)
     logger.info("`meta.json` written")
