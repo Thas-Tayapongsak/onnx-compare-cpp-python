@@ -64,6 +64,7 @@ add_library(pipeline_core::pipeline_core
 target_sources(pipeline_core
     PRIVATE 
         pipeline_core/src/pipeline.cpp
+        pipeline_core/src/run_support.cpp
         pipeline_core/src/stub.cpp
     
     PUBLIC 
