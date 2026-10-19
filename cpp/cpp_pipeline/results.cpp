@@ -4,8 +4,10 @@
 #include <array>
 #include <bit>
 #include <cstdint>
+#include <filesystem>
 #include <format>
 #include <fstream>
+#include <miniz.h>
 #include <span>
 #include <stdexcept>
 #include <string>
@@ -25,40 +27,6 @@ namespace
     {
         out.push_back(static_cast<std::uint8_t>(value & 0xFFU));
         out.push_back(static_cast<std::uint8_t>((value >> 8U) & 0xFFU));
-    }
-
-    void append_u32(std::vector<std::uint8_t> &out, std::uint32_t value)
-    {
-        out.push_back(static_cast<std::uint8_t>(value & 0xFFU));
-        out.push_back(static_cast<std::uint8_t>((value >> 8U) & 0xFFU));
-        out.push_back(static_cast<std::uint8_t>((value >> 16U) & 0xFFU));
-        out.push_back(static_cast<std::uint8_t>((value >> 24U) & 0xFFU));
-    }
-
-    std::uint32_t crc32(const std::uint8_t *data, std::size_t size)
-    {
-        static const std::array<std::uint32_t, 256> table = []
-        {
-            std::array<std::uint32_t, 256> values{};
-            for (std::uint32_t i = 0; i < values.size(); ++i)
-            {
-                std::uint32_t value = i;
-                for (int bit = 0; bit < 8; ++bit)
-                {
-                    value = (value & 1U) ? (0xEDB88320U ^ (value >> 1U))
-                                         : (value >> 1U);
-                }
-                values[i] = value;
-            }
-            return values;
-        }();
-
-        std::uint32_t crc = 0xFFFFFFFFU;
-        for (std::size_t i = 0; i < size; ++i)
-        {
-            crc = table[(crc ^ data[i]) & 0xFFU] ^ (crc >> 8U);
-        }
-        return crc ^ 0xFFFFFFFFU;
     }
 
     std::string make_npy_header(std::string_view descr,
@@ -114,100 +82,61 @@ namespace
         return output;
     }
 
-    struct ZipEntry
+    class ZipWriter
     {
-        std::string name;
-        std::vector<std::uint8_t> data;
-        std::uint32_t crc{};
-        std::uint32_t offset{};
-    };
-
-    void write_zip(const std::filesystem::path &path,
-                   std::vector<ZipEntry> &entries)
-    {
-        if (entries.size() > 0xFFFFU)
+      public:
+        explicit ZipWriter(const std::filesystem::path &path)
         {
-            throw std::runtime_error("ZIP archive has too many entries");
-        }
-
-        std::vector<std::uint8_t> archive;
-        for (ZipEntry &entry : entries)
-        {
-            if (entry.name.size() > 0xFFFFU || entry.data.size() > 0xFFFFFFFFU)
+            if (mz_zip_writer_init_file(&archive_, path.string().c_str(), 0) ==
+                MZ_FALSE)
             {
-                throw std::runtime_error("ZIP entry is too large");
+                throw std::runtime_error(std::format(
+                    "Could not open {} for writing", path.string()));
             }
-
-            entry.crc = crc32(entry.data.data(), entry.data.size());
-            entry.offset = static_cast<std::uint32_t>(archive.size());
-
-            // Local file header.
-            append_u32(archive, 0x04034B50U);
-            append_u16(archive, 20); // version needed to extract
-            append_u16(archive, 0);  // general purpose flags
-            append_u16(archive, 0);  // compression method: stored
-            append_u16(archive, 0);  // modification time
-            append_u16(archive, 0);  // modification date
-            append_u32(archive, entry.crc);
-            append_u32(archive, static_cast<std::uint32_t>(entry.data.size()));
-            append_u32(archive, static_cast<std::uint32_t>(entry.data.size()));
-            append_u16(archive, static_cast<std::uint16_t>(entry.name.size()));
-            append_u16(archive, 0); // extra field length
-            archive.insert(archive.end(), entry.name.begin(), entry.name.end());
-            archive.insert(archive.end(), entry.data.begin(), entry.data.end());
+            open_ = true;
         }
 
-        const std::size_t central_directory_offset = archive.size();
-        for (const ZipEntry &entry : entries)
+        ~ZipWriter()
         {
-            // Central directory file header.
-            append_u32(archive, 0x02014B50U);
-            append_u16(archive, 20); // version made by
-            append_u16(archive, 20); // version needed to extract
-            append_u16(archive, 0);  // general purpose flags
-            append_u16(archive, 0);  // compression method: stored
-            append_u16(archive, 0);  // modification time
-            append_u16(archive, 0);  // modification date
-            append_u32(archive, entry.crc);
-            append_u32(archive, static_cast<std::uint32_t>(entry.data.size()));
-            append_u32(archive, static_cast<std::uint32_t>(entry.data.size()));
-            append_u16(archive, static_cast<std::uint16_t>(entry.name.size()));
-            append_u16(archive, 0); // extra field length
-            append_u16(archive, 0); // file comment length
-            append_u16(archive, 0); // disk number start
-            append_u16(archive, 0); // internal file attributes
-            append_u32(archive, 0); // external file attributes
-            append_u32(archive, entry.offset);
-            archive.insert(archive.end(), entry.name.begin(), entry.name.end());
+            if (open_)
+            {
+                mz_zip_writer_end(&archive_);
+            }
         }
-        const std::size_t central_directory_size =
-            archive.size() - central_directory_offset;
 
-        // End of central directory record.
-        append_u32(archive, 0x06054B50U);
-        append_u16(archive, 0); // number of this disk
-        append_u16(archive, 0); // disk with the central directory
-        append_u16(archive, static_cast<std::uint16_t>(entries.size()));
-        append_u16(archive, static_cast<std::uint16_t>(entries.size()));
-        append_u32(archive, static_cast<std::uint32_t>(central_directory_size));
-        append_u32(archive,
-                   static_cast<std::uint32_t>(central_directory_offset));
-        append_u16(archive, 0); // archive comment length
+        ZipWriter(const ZipWriter &) = delete;
+        ZipWriter &operator=(const ZipWriter &) = delete;
 
-        std::ofstream file(path, std::ios::binary | std::ios::trunc);
-        if (!file)
+        void add(std::string_view name, const std::vector<std::uint8_t> &data)
         {
-            throw std::runtime_error(
-                std::format("Could not open {} for writing", path.string()));
+            const std::string entry_name(name);
+            if (mz_zip_writer_add_mem(&archive_, entry_name.c_str(),
+                                      data.data(), data.size(),
+                                      MZ_NO_COMPRESSION) == MZ_FALSE)
+            {
+                throw std::runtime_error(
+                    std::format("Could not add {} to the ZIP archive", name));
+            }
         }
-        file.write(reinterpret_cast<const char *>(archive.data()),
-                   static_cast<std::streamsize>(archive.size()));
-        if (!file)
+
+        void finish()
         {
-            throw std::runtime_error(
-                std::format("Could not write {}", path.string()));
+            if (mz_zip_writer_finalize_archive(&archive_) == MZ_FALSE)
+            {
+                throw std::runtime_error("Could not finalize the ZIP archive");
+            }
+            const mz_bool closed = mz_zip_writer_end(&archive_);
+            open_ = false;
+            if (closed == MZ_FALSE)
+            {
+                throw std::runtime_error("Could not close the ZIP archive");
+            }
         }
-    }
+
+      private:
+        mz_zip_archive archive_{};
+        bool open_{false};
+    };
 
     void validate_results(
         const cpp_pipeline::InstanceSegmentationInferenceResults &results)
@@ -280,20 +209,17 @@ namespace cpp_pipeline
         const std::array<std::size_t, 1> count_shape{count};
         const std::array<std::size_t, 2> boxes_shape{count, 4};
 
-        std::vector<ZipEntry> entries;
-        entries.push_back(
-            {"num_predictions.npy",
-             make_npy("<i8", num_predictions_shape, results.num_predictions)});
-        entries.push_back(
-            {"scores.npy", make_npy("<f4", count_shape, results.scores)});
-        entries.push_back(
-            {"labels.npy", make_npy("<i8", count_shape, results.labels)});
-        entries.push_back(
-            {"boxes.npy", make_npy("<f4", boxes_shape, results.boxes)});
-        entries.push_back(
-            {"masks.npy", make_npy("|b1", results.masks_shape, results.masks)});
+        ZipWriter archive(output_dir / "outputs.npz");
+        archive.add(
+            "num_predictions.npy",
+            make_npy("<i8", num_predictions_shape, results.num_predictions));
+        archive.add("scores.npy", make_npy("<f4", count_shape, results.scores));
+        archive.add("labels.npy", make_npy("<i8", count_shape, results.labels));
+        archive.add("boxes.npy", make_npy("<f4", boxes_shape, results.boxes));
+        archive.add("masks.npy",
+                    make_npy("|b1", results.masks_shape, results.masks));
+        archive.finish();
 
-        write_zip(output_dir / "outputs.npz", entries);
         log_info("`outputs.npz` written");
     }
 
