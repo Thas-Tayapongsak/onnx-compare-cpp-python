@@ -10,7 +10,6 @@
 #include <algorithm>
 #include <array>
 #include <chrono>
-#include <cstddef>
 #include <format>
 #include <stdexcept>
 #include <string>
