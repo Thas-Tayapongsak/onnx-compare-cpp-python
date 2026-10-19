@@ -1,12 +1,11 @@
 #include "results.h"
 #include "log.h"
-
 #include "npz.h"
+
 #include <filesystem>
 #include <format>
 #include <fstream>
 #include <stdexcept>
-#include <string_view>
 #include <vector>
 
 namespace cpp_pipeline
@@ -30,41 +29,52 @@ namespace cpp_pipeline
         std::filesystem::create_directories(output_dir);
     }
 
-    void write_outputs(const std::filesystem::path &output_dir,
-                       const InstanceSegmentationInferenceResults &results)
+    void write_outputs(
+        const std::filesystem::path &output_dir,
+        const std::vector<pipeline_core::InstanceSegmentationInferenceResults>
+            &results)
     {
+        if (results.size() != 1U)
+        {
+            throw std::runtime_error(std::format(
+                "outputs.npz supports exactly one inference result; got {}",
+                results.size()));
+        }
+        const pipeline_core::InstanceSegmentationInferenceResults &result =
+            results.front();
         const std::vector<NpzEntry> entries{
             {"num_predictions.npy",
-             make_npy("<i8", results.num_predictions.shape,
-                      results.num_predictions.data)},
+             make_npy("<i8", result.num_predictions.shape,
+                      result.num_predictions.data)},
             {"scores.npy",
-             make_npy("<f4", results.scores.shape, results.scores.data)},
+             make_npy("<f4", result.scores.shape, result.scores.data)},
             {"labels.npy",
-             make_npy("<i8", results.labels.shape, results.labels.data)},
+             make_npy("<i8", result.labels.shape, result.labels.data)},
             {"boxes.npy",
-             make_npy("<f4", results.boxes.shape, results.boxes.data)},
+             make_npy("<f4", result.boxes.shape, result.boxes.data)},
             {"masks.npy",
-             make_npy("|b1", results.masks.shape, results.masks.data)},
+             make_npy("|b1", result.masks.shape, result.masks.data)},
         };
         write_npz(output_dir / "outputs.npz", entries);
         log_info("`outputs.npz` written");
     }
 
-    void write_meta(const std::filesystem::path &output_dir)
+    void write_meta(const std::filesystem::path &output_dir,
+                    const pipeline_core::MetaResults &meta)
     {
-        std::ofstream file(output_dir / "meta.json",
-                           std::ios::binary | std::ios::trunc);
+        static_cast<void>(meta);
+        const std::filesystem::path path = output_dir / "meta.json";
+        std::ofstream file(path, std::ios::binary | std::ios::trunc);
         if (!file)
         {
             throw std::runtime_error(
-                std::format("Could not open {} for writing",
-                            (output_dir / "meta.json").string()));
+                std::format("Could not open {} for writing", path.string()));
         }
         file << "{\"pipeline\": \"cpp\"}";
         if (!file)
         {
-            throw std::runtime_error(std::format(
-                "Could not write {}", (output_dir / "meta.json").string()));
+            throw std::runtime_error(
+                std::format("Could not write {}", path.string()));
         }
         log_info("`meta.json` written");
     }

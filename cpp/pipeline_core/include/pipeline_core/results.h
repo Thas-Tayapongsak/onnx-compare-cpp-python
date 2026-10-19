@@ -1,0 +1,48 @@
+#pragma once
+
+#include "pipeline_core/array.h"
+
+#include <cstdint>
+#include <string>
+#include <vector>
+
+namespace pipeline_core
+{
+    struct InstanceSegmentationInferenceResults
+    {
+        NDArray<std::int64_t> num_predictions;
+        NDArray<float> scores;
+        NDArray<std::int64_t> labels;
+        NDArray<float> boxes;
+        NDArray<std::uint8_t> masks;
+    };
+
+    struct MetaResults
+    {
+        std::string pipeline;
+        std::string model;
+        std::string input_image;
+        double confidence_threshold{0.0};
+        double nms_iou_threshold{0.0};
+        std::vector<std::vector<std::int64_t>> target_sizes;
+        std::string created_utc;
+        std::int64_t duration_ms{0};
+        std::string execution_provider;
+    };
+
+    struct RunTimings
+    {
+        int setup_ms{0};
+        int preprocess_ms{0};
+        int inference_ms{0};
+        int postprocess_ms{0};
+        int duration_ms{0};
+    };
+
+    struct RunOutput
+    {
+        std::vector<InstanceSegmentationInferenceResults> results;
+        MetaResults meta;
+        RunTimings timings;
+    };
+} // namespace pipeline_core

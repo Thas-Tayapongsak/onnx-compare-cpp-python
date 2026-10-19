@@ -1,5 +1,7 @@
 #pragma once
 
+#include <pipeline_core/array.h>
+
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
@@ -8,22 +10,6 @@
 
 namespace cpp_pipeline
 {
-    template <typename T> class NDArray
-    {
-      public:
-        std::vector<std::size_t> shape;
-        std::vector<T> data;
-
-        NDArray() = default;
-        NDArray(std::vector<std::size_t> shape_, std::vector<T> data_)
-            : shape(std::move(shape_)), data(std::move(data_))
-        {
-        }
-
-        operator std::vector<T> &() { return data; }
-        operator const std::vector<T> &() const { return data; }
-    };
-
     template <typename T>
     std::vector<std::uint8_t> make_npy(std::string_view descr,
                                        const std::vector<std::size_t> &shape,
