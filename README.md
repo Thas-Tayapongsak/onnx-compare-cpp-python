@@ -56,6 +56,17 @@ Both pipelines support `-h` and `--help`.
 The pipeline writes `outputs.npz` and `meta.json` directly into the folder it
 receives.
 
+The raw comparison command is:
+
+```text
+uv run --project python/compare compare --model <model folder> --image <image> --output <run root>
+```
+
+The compare program takes the same three flags. `--output` defaults to `runs`
+and is the root that holds the run folder. The program creates
+`<run root>/<YYYYMMDDTHHMMSSZ>-<model folder name>/`, runs both pipelines into
+its `python/` and `cpp/` folders, and writes `report.json`.
+
 ## Models and input images
 
 `onnx/` holds one folder per model, with `model.onnx` and its config files. Other JSON files are training metadata which may be useful.
@@ -118,5 +129,10 @@ through output writing. The 50 ms interval limits interference with stage
 timings; a shorter allocation can be missed. The VRAM fields are the VRAM used
 by the process. They are `0` when no CUDA device is used. The `_gb` fields use
 2^30 bytes.
+
+`report.json` holds the comparison result. For now it has one boolean per
+`outputs.npz` key. A boolean is `true` when the two arrays are exactly equal.
+A `false` value is a valid comparison result; the compare program exits zero
+when both pipelines succeed.
 
 Load `outputs.npz` with `numpy.load` and `meta.json` with `json.load`.

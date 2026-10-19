@@ -1,2 +1,3 @@
-def main() -> None:
-    print("Hello from compare!")
+from .main import compare_main as main
+
+__all__ = ["main"]
