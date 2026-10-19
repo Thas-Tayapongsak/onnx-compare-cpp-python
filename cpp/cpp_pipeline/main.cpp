@@ -1,8 +1,10 @@
 #include "cli.h"
 #include "log.h"
+#include "results.h"
+#include "stub.h"
 
+#include <exception>
 #include <format>
-#include <pipeline_core/core.h>
 
 int main(int argc, char *argv[])
 {
@@ -22,9 +24,26 @@ int main(int argc, char *argv[])
     cpp_pipeline::log_info("===========================");
     cpp_pipeline::log_info(
         std::format("Model folder path: {}", args.model_folder_path.string()));
+    cpp_pipeline::log_info(
+        std::format("Image path: {}", args.image_path.string()));
+    cpp_pipeline::log_info(std::format("Output folder path: {}",
+                                       args.output_folder_path.string()));
+    cpp_pipeline::log_info("===========================");
+    cpp_pipeline::log_info("Running inference pipeline");
+
+    try
+    {
+        cpp_pipeline::prepare_output_dir(args.output_folder_path);
+        cpp_pipeline::write_outputs(args.output_folder_path,
+                                    cpp_pipeline::run_stub());
+        cpp_pipeline::write_meta(args.output_folder_path);
+    }
+    catch (const std::exception &error)
+    {
+        cpp_pipeline::log_error(std::format("Error: {}", error.what()));
+        return 1;
+    }
 
     cpp_pipeline::log_info("===========================");
-
-    int result = pipeline_core::answer();
-    return result == 42 ? 0 : 1;
+    return 0;
 }
