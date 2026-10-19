@@ -4,6 +4,7 @@ __all__ = [
     "InstanceSegmentationInferenceResults",
     "MetaResults",
     "RunOutput",
+    "RunTimings",
     "prepare_output_dir",
     "write_outputs",
     "write_meta",
@@ -46,11 +47,23 @@ class MetaResults:
 
 
 @dataclass
+class RunTimings:
+    """Median stage durations for one run."""
+
+    setup_ms: int
+    preprocess_ms: int
+    inference_ms: int
+    postprocess_ms: int
+    duration_ms: int
+
+
+@dataclass
 class RunOutput:
-    """Model results and run details for one run."""
+    """Model results, run details, and timing results for one run."""
 
     results: InstanceSegmentationInferenceResults
     meta: MetaResults
+    timings: RunTimings
 
 
 def prepare_output_dir(path: Path) -> None:
