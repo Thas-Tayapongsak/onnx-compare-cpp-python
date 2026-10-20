@@ -43,6 +43,7 @@ def compare_main() -> None:
     logger.info(f"Model folder path: {args.model_folder_path}")
     logger.info(f"Image path: {args.image_path}")
     logger.info(f"Output root path: {args.output_root_path}")
+    logger.info(f"Repeat count: {args.repeats}")
 
     try:
         paths = create_run_paths(args)

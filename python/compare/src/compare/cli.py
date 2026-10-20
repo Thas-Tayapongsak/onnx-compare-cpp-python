@@ -9,6 +9,7 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_MODEL_ONNX_FILENAME = "model.onnx"
 DEFAULT_OUTPUT_ROOT = "runs"
+DEFAULT_REPEATS = 1
 
 
 @dataclass
@@ -18,6 +19,7 @@ class CompareArgs:
     model_folder_path: Path
     image_path: Path
     output_root_path: Path
+    repeats: int
 
 
 def parse_args() -> argparse.Namespace:
@@ -43,6 +45,13 @@ def parse_args() -> argparse.Namespace:
         required=False,
         default=DEFAULT_OUTPUT_ROOT,
         help="Path to the folder that holds run folders.",
+    )
+    parser.add_argument(
+        "--repeat",
+        type=int,
+        required=False,
+        default=DEFAULT_REPEATS,
+        help="Number of times each pipeline runs the payload. Must be at least 1.",
     )
     return parser.parse_args()
 
@@ -71,8 +80,13 @@ def build_compare_args(args: argparse.Namespace) -> CompareArgs | None:
         logger.error(f"Output path {output_root_path} is not a directory")
         return None
 
+    if args.repeat < 1:
+        logger.error(f"Repeat count {args.repeat} must be at least 1")
+        return None
+
     return CompareArgs(
         model_folder_path=model_folder_path,
         image_path=image_path,
         output_root_path=output_root_path,
+        repeats=args.repeat,
     )

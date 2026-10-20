@@ -40,6 +40,7 @@ MEMORY_FIELDS = (
 )
 
 REQUIRED_META_FIELDS = (
+    "repeats",
     *CONFIGURATION_FIELDS,
     *(meta_key for _, meta_key in TIMING_FIELDS),
     *(meta_key for _, meta_key in MEMORY_FIELDS),
@@ -162,12 +163,25 @@ def _build_group(
     }
 
 
+def _read_repeat(value: object, path: Path) -> int:
+    """Return the repeat count or fail."""
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise ValueError(f"{path} field `repeats` must be an integer")
+    return value
+
+
 def build_measurements(
     python_meta: MetaFile,
     cpp_meta: MetaFile,
 ) -> dict[str, object]:
-    """Build the timing and memory measurement groups."""
+    """Build the repeat count and the timing and memory measurement groups."""
     return {
+        "repeats": {
+            "python": _read_repeat(
+                python_meta.values["repeats"], python_meta.path
+            ),
+            "cpp": _read_repeat(cpp_meta.values["repeats"], cpp_meta.path),
+        },
         "timings_ms": _build_group(
             TIMING_FIELDS, python_meta, cpp_meta, _read_timing
         ),

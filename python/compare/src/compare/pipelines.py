@@ -59,6 +59,8 @@ def run_python_pipeline(args: CompareArgs, output_folder: Path) -> None:
         str(args.image_path),
         "--output",
         str(output_folder),
+        "--repeat",
+        str(args.repeats),
     ]
     _run_command(command, "Python")
 
@@ -73,6 +75,8 @@ def run_cpp_pipeline(args: CompareArgs, output_folder: Path) -> None:
         str(args.image_path),
         "--output",
         str(output_folder),
+        "--repeat",
+        str(args.repeats),
     ]
     _run_command(command, "C++")
 
