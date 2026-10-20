@@ -37,6 +37,39 @@ set_target_properties(onnxruntime::onnxruntime PROPERTIES
     INTERFACE_INCLUDE_DIRECTORIES "${onnxruntime_SOURCE_DIR}/include"
 )
 
+# OpenCV: image decoding, color conversion, and resize. The official Windows
+# package is a self-extracting 7z archive, so download it without extraction
+# and unpack it once into the build tree.
+FetchContent_Declare(opencv
+    URL https://github.com/opencv/opencv/releases/download/5.0.0/opencv-5.0.0-windows.exe
+    URL_HASH SHA256=9c6c1fcea58acdf06edba13148b2246e00c2658143fa51e61ecd370db8c39f63
+    DOWNLOAD_NO_EXTRACT TRUE
+)
+FetchContent_MakeAvailable(opencv)   # downloads only: the package has no CMakeLists.txt
+set(OPENCV_EXTRACT_DIR "${CMAKE_BINARY_DIR}/_deps/opencv-extracted")
+set(OPENCV_CONFIG "${OPENCV_EXTRACT_DIR}/opencv/build/OpenCVConfig.cmake")
+if(NOT EXISTS "${OPENCV_CONFIG}")
+    execute_process(
+        COMMAND "${opencv_SOURCE_DIR}/opencv-5.0.0-windows.exe"
+                -y "-o${OPENCV_EXTRACT_DIR}"
+        RESULT_VARIABLE opencv_extract_result
+        OUTPUT_VARIABLE opencv_extract_output
+        ERROR_VARIABLE opencv_extract_error
+    )
+    if(NOT opencv_extract_result EQUAL 0 OR NOT EXISTS "${OPENCV_CONFIG}")
+        message(FATAL_ERROR
+            "OpenCV extraction failed: ${opencv_extract_output}${opencv_extract_error}")
+    endif()
+endif()
+find_package(OpenCV CONFIG REQUIRED
+    PATHS "${OPENCV_EXTRACT_DIR}/opencv/build"
+    NO_DEFAULT_PATH
+)
+# The package exports Release and Debug, while this project builds RelWithDebInfo.
+set_target_properties(opencv_world PROPERTIES
+    MAP_IMPORTED_CONFIG_RELWITHDEBINFO Release
+)
+
 # miniz: ZIP container for `outputs.npz`. The release archive has no
 # CMakeLists.txt, so use the pinned source archive from the tagged revision.
 FetchContent_Declare(miniz
@@ -106,6 +139,7 @@ target_link_libraries(cpp_pipeline
 target_link_libraries(pipeline_core
     PRIVATE 
         onnxruntime::onnxruntime
+        opencv_world
         nlohmann_json::nlohmann_json
         advapi32
         psapi
@@ -115,4 +149,10 @@ add_custom_command(TARGET cpp_pipeline POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "$<TARGET_FILE:onnxruntime::onnxruntime>"
         "$<TARGET_FILE_DIR:cpp_pipeline>/onnxruntime.dll"
+)
+
+add_custom_command(TARGET cpp_pipeline POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "$<TARGET_FILE:opencv_world>"
+        "$<TARGET_FILE_DIR:cpp_pipeline>/$<TARGET_FILE_NAME:opencv_world>"
 )

@@ -23,11 +23,12 @@ All tools must be on your PATH.
 
 ### C++
 
-CMake fetches ONNX Runtime, miniz, and nlohmann/json.
+CMake fetches ONNX Runtime, OpenCV, miniz, and nlohmann/json.
 
 | Dependency | Version |
 | --- | --- |
 | ONNX Runtime | 1.31.0 |
+| OpenCV | 5.0.0 |
 | miniz | 3.1.2 |
 | nlohmann/json | 3.12.0 |
 
