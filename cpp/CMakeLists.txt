@@ -108,6 +108,7 @@ target_sources(pipeline_core
         pipeline_core/src/machine.cpp
         pipeline_core/src/memory.cpp
         pipeline_core/src/pipeline.cpp
+        pipeline_core/src/preprocess.cpp
         pipeline_core/src/run_support.cpp
         pipeline_core/src/stub.cpp
     
