@@ -6,6 +6,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <format>
 #include <span>
 #include <stdexcept>
 #include <string>
@@ -67,5 +68,18 @@ namespace pipeline_core::detail
             fail("Output 'masks' must have shape (" + std::to_string(rows) +
                  ", H, W); got " + format_size_shape(masks));
         }
+    }
+
+    void
+    log_packaged_results(const InstanceSegmentationInferenceResults &results)
+    {
+        log_info(std::format(
+            "Packaged results: num_predictions {} int64, scores {} float32, "
+            "labels {} int64, boxes {} float32, masks {} bool",
+            format_size_shape(results.num_predictions.shape),
+            format_size_shape(results.scores.shape),
+            format_size_shape(results.labels.shape),
+            format_size_shape(results.boxes.shape),
+            format_size_shape(results.masks.shape)));
     }
 } // namespace pipeline_core::detail

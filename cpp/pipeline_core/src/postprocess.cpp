@@ -165,6 +165,7 @@ namespace pipeline_core::detail
         results.masks = copy_output<std::uint8_t>(
             require_output(raw, "masks"), ONNX_TENSOR_ELEMENT_DATA_TYPE_BOOL);
         check_result_counts(results);
+        log_packaged_results(results);
         return results;
     }
 } // namespace pipeline_core::detail
