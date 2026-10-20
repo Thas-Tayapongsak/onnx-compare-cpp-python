@@ -45,6 +45,13 @@ FetchContent_Declare(miniz
 )
 FetchContent_MakeAvailable(miniz)
 
+# nlohmann/json: model settings and `meta.json`.
+FetchContent_Declare(nlohmann_json
+    URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz
+    URL_HASH SHA256=42f6e95cad6ec532fd372391373363b62a14af6d771056dbfc86160e6dfff7aa
+)
+FetchContent_MakeAvailable(nlohmann_json)
+
 
 add_executable(cpp_pipeline)
 target_sources(cpp_pipeline
@@ -64,6 +71,7 @@ add_library(pipeline_core::pipeline_core
 )
 target_sources(pipeline_core
     PRIVATE 
+        pipeline_core/src/config.cpp
         pipeline_core/src/machine.cpp
         pipeline_core/src/memory.cpp
         pipeline_core/src/pipeline.cpp
@@ -92,11 +100,13 @@ target_link_libraries(cpp_pipeline
     PRIVATE 
         pipeline_core
         miniz
+        nlohmann_json::nlohmann_json
 )
 
 target_link_libraries(pipeline_core
     PRIVATE 
         onnxruntime::onnxruntime
+        nlohmann_json::nlohmann_json
         advapi32
         psapi
 )
