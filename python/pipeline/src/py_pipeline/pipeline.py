@@ -8,11 +8,16 @@ __all__ = [
     "setup",
 ]
 
+import logging
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from statistics import median
 from time import perf_counter
 
+import numpy as np
+import onnxruntime as ort
+
+from .config import read_confidence_threshold, read_standardization
 from .machine import read_machine_info
 from .memory import MemoryMonitor
 from .results import (
@@ -24,25 +29,64 @@ from .results import (
 from .run import InferencePayload, RunInput
 from .stub import run_stub
 
+logger = logging.getLogger(__name__)
+
 
 @dataclass
 class RunState:
     """State created by setup for one pipeline run."""
 
+    session: ort.InferenceSession
+    confidence_threshold: float
+    nms_iou_threshold: float
+    target_sizes: np.ndarray
+    mean: np.ndarray | None
+    std: np.ndarray | None
 
-def setup(run_input: RunInput) -> RunState:
-    """Prepare the state for one run; the stub needs nothing."""
-    return RunState()
+
+_state: RunState | None = None
 
 
-def preprocess(payload: InferencePayload, state: RunState) -> InferencePayload:
+def _require_state() -> RunState:
+    """Return the setup state or fail when setup has not run."""
+    if _state is None:
+        raise RuntimeError("Pipeline setup has not run")
+    return _state
+
+
+def setup(run_input: RunInput) -> None:
+    """Load the model and store the run-wide setup values."""
+    global _state
+
+    model_folder = run_input.parsed_args.model_folder_path
+    model_path = run_input.parsed_args.model_onnx_path
+    confidence_threshold = read_confidence_threshold(model_folder)
+    mean, std = read_standardization(model_folder)
+
+    logger.info(f"Loading ONNX model: {model_path}")
+    session = ort.InferenceSession(str(model_path))
+    _state = RunState(
+        session=session,
+        confidence_threshold=confidence_threshold,
+        nms_iou_threshold=1.0,
+        target_sizes=np.array([[0, 0]], dtype=np.int64),
+        mean=mean,
+        std=std,
+    )
+    logger.info(f"ONNX Runtime providers: {session.get_providers()}")
+    logger.info(f"Confidence threshold: {confidence_threshold}")
+    logger.info(
+        f"Standardization: {'enabled' if mean is not None else 'disabled'}"
+    )
+
+
+def preprocess(payload: InferencePayload) -> InferencePayload:
     """Return the session inputs; preprocessing is deferred."""
     return payload
 
 
 def inference(
     payload: InferencePayload,
-    state: RunState,
 ) -> InstanceSegmentationInferenceResults:
     """Run the stub inference; the session is deferred."""
     return run_stub(payload)
@@ -50,7 +94,6 @@ def inference(
 
 def postprocess(
     results: InstanceSegmentationInferenceResults,
-    payload: InferencePayload,
 ) -> InstanceSegmentationInferenceResults:
     """Return the final results; postprocessing is deferred."""
     return results
@@ -76,33 +119,31 @@ def _run_pipeline(run_input: RunInput, memory: MemoryMonitor) -> RunOutput:
     postprocess_samples: list[int] = []
     total_samples: list[int] = []
     results_list: list[InstanceSegmentationInferenceResults] = []
-    first_payload = run_input.inference_payloads[0]
 
     created_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     machine_info = read_machine_info()
     memory.enter_stage("setup")
     setup_start = perf_counter()
-    state = setup(run_input)
+    setup(run_input)
+    state = _require_state()
     setup_ms = _elapsed_ms(setup_start)
 
-    for index, payload in enumerate(run_input.inference_payloads):
+    for payload in run_input.inference_payloads:
         memory.enter_stage("preprocess")
         total_start = perf_counter()
 
         start = perf_counter()
-        processed_payload = preprocess(payload, state)
+        processed_payload = preprocess(payload)
         preprocess_samples.append(_elapsed_ms(start))
-        if index == 0:
-            first_payload = processed_payload
 
         memory.enter_stage("inference")
         start = perf_counter()
-        raw_results = inference(processed_payload, state)
+        raw_results = inference(processed_payload)
         inference_samples.append(_elapsed_ms(start))
 
         memory.enter_stage("postprocess")
         start = perf_counter()
-        results = postprocess(raw_results, processed_payload)
+        results = postprocess(raw_results)
         postprocess_samples.append(_elapsed_ms(start))
 
         total_samples.append(_elapsed_ms(total_start))
@@ -121,9 +162,9 @@ def _run_pipeline(run_input: RunInput, memory: MemoryMonitor) -> RunOutput:
         pipeline="python",
         model=run_input.parsed_args.model_folder_path.name,
         input_image=run_input.parsed_args.image_path.name,
-        confidence_threshold=first_payload.confidence_threshold,
-        nms_iou_threshold=first_payload.nms_iou_threshold,
-        target_sizes=first_payload.target_sizes.tolist(),
+        confidence_threshold=state.confidence_threshold,
+        nms_iou_threshold=state.nms_iou_threshold,
+        target_sizes=state.target_sizes.tolist(),
         created_utc=created_utc,
         setup_ms=timings.setup_ms,
         preprocess_ms=timings.preprocess_ms,

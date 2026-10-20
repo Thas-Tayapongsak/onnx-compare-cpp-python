@@ -15,9 +15,6 @@ from .run import InferencePayload, RunInput
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_CONFIDENCE_THRESHOLD = 0.05
-DEFAULT_NMS_IOU_THRESHOLD = 0.7
-DEFAULT_TARGET_SIZES = ((64, 64),)
 DEFAULT_PIXEL_VALUES_SHAPE = (1, 3, 64, 64)
 
 
@@ -31,12 +28,9 @@ def configure_logging() -> None:
 
 
 def build_run_input(parsed_args: ParsedArgs) -> RunInput:
-    """Build the run input with the temporary stub defaults."""
+    """Build the run input with the temporary stub payload."""
     payload = InferencePayload(
         pixel_values=np.zeros(DEFAULT_PIXEL_VALUES_SHAPE, dtype=np.float32),
-        confidence_threshold=DEFAULT_CONFIDENCE_THRESHOLD,
-        nms_iou_threshold=DEFAULT_NMS_IOU_THRESHOLD,
-        target_sizes=np.array(DEFAULT_TARGET_SIZES, dtype=np.int64),
     )
     return RunInput(parsed_args=parsed_args, inference_payloads=[payload])
 

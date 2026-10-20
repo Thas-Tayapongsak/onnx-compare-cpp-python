@@ -11,12 +11,9 @@ from .cli import ParsedArgs
 
 @dataclass
 class InferencePayload:
-    """Session inputs for one image."""
+    """Session pixel values for one image."""
 
     pixel_values: np.ndarray
-    confidence_threshold: float
-    nms_iou_threshold: float
-    target_sizes: np.ndarray
 
 
 @dataclass
