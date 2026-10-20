@@ -70,12 +70,11 @@ and is the root that holds the run folder. The program creates
 its `python/` and `cpp/` folders, and writes `report.json`.
 
 `scripts/compare.ps1` passes `--model`, `--image`, and `--output` to `compare`.
-Run it from the repository root so relative paths resolve there.
+Run it from the repository root.
 
 ## Models and input images
 
-`onnx/` holds one folder per model, with `model.onnx` and its config files. Other JSON files are training metadata which may be useful.
-This is the form the models take in practical use.
+`onnx/` holds one folder per model, with `model.onnx` and its config files. Other JSON files are training metadata.
 Treat the folder as read-only.
 
 `images/` holds the input images for runs. One run takes one image.
@@ -92,8 +91,7 @@ runs/<YYYYMMDDTHHMMSSZ>-<model folder name>/
   report.json        the comparison result
 ```
 
-The timestamp is UTC. The format is file-safe on Windows, for example
-`20261018T040454Z`.
+The timestamp is UTC, for example `20261018T040454Z`.
 
 Both pipelines write the same two file names and the same keys inside them.
 
@@ -132,14 +130,15 @@ or `null`. The RAM fields are the working set of the pipeline process, not the
 total machine memory. The memory sampler takes a sample every 50 ms. A stage
 RAM field is the highest sample during that stage. The payload-stage values
 are maxima across the payloads, and `ram_gb` is the whole-run sampled peak
-through output writing. The 50 ms interval limits interference with stage
-timings; a shorter allocation can be missed. The VRAM fields are the VRAM used
+through output writing. The VRAM fields are the VRAM used
 by the process. They are `0` when no CUDA device is used. The `_gb` fields use
 2^30 bytes.
 
-`report.json` holds the comparison result. For now it has one boolean per
-`outputs.npz` key. A boolean is `true` when the two arrays are exactly equal.
-A `false` value is a valid comparison result; the compare program exits zero
-when both pipelines succeed.
+`report.json` holds the comparison result. It has three objects: `outputs`,
+`configuration`, and `measurements`.
+
+- `outputs`: the `outputs.npz` comparison, one boolean per key.
+- `configuration`: the Python and C++ values of the run settings.
+- `measurements`: the Python and C++ timing and memory values.
 
 Load `outputs.npz` with `numpy.load` and `meta.json` with `json.load`.
