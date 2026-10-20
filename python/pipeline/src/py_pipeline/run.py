@@ -51,6 +51,7 @@ class RunState:
     """State created by setup for one pipeline run."""
 
     session: ort.InferenceSession
+    execution_provider: str
     confidence_threshold: float
     nms_iou_threshold: float
     target_sizes: np.ndarray

@@ -62,6 +62,7 @@ def setup(run_input: RunInput) -> None:
     session = ort.InferenceSession(str(model_path))
     _state = RunState(
         session=session,
+        execution_provider=session.get_providers()[0],
         confidence_threshold=confidence_threshold,
         nms_iou_threshold=1.0,
         target_sizes=np.array([[0, 0]], dtype=np.int64),
@@ -175,7 +176,7 @@ def _run_pipeline(run_input: RunInput, memory: MemoryMonitor) -> RunOutput:
         inference_ms=timings.inference_ms,
         postprocess_ms=timings.postprocess_ms,
         duration_ms=timings.duration_ms,
-        execution_provider="stub",
+        execution_provider=state.execution_provider,
         cpu=machine_info.cpu,
         gpu=machine_info.gpu,
         setup_ram_gb=memory.stage_ram_gb("setup"),
