@@ -9,7 +9,6 @@ __all__ = [
 ]
 
 import logging
-from dataclasses import dataclass
 from datetime import datetime, timezone
 from statistics import median
 from time import perf_counter
@@ -27,22 +26,15 @@ from .results import (
     RunOutput,
     RunTimings,
 )
-from .run import InferencePayload, PreprocessedPayload, RunInput
+from .run import (
+    InferencePayload,
+    PreprocessedPayload,
+    RunInput,
+    RunState,
+)
 from .stub import run_stub
 
 logger = logging.getLogger(__name__)
-
-
-@dataclass
-class RunState:
-    """State created by setup for one pipeline run."""
-
-    session: ort.InferenceSession
-    confidence_threshold: float
-    nms_iou_threshold: float
-    target_sizes: np.ndarray
-    mean: np.ndarray | None
-    std: np.ndarray | None
 
 
 _state: RunState | None = None
