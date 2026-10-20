@@ -96,4 +96,48 @@ namespace pipeline_core::detail
         }
         return utf8_string(name);
     }
+
+    std::string format_names(std::span<const std::string> names)
+    {
+        std::string text = "[";
+        for (std::size_t index = 0; index < names.size(); ++index)
+        {
+            if (index != 0)
+            {
+                text += ", ";
+            }
+            text += '\'';
+            text += names[index];
+            text += '\'';
+        }
+        return text + "]";
+    }
+
+    std::string format_signed_shape(std::span<const std::int64_t> shape)
+    {
+        std::string text = "(";
+        for (std::size_t index = 0; index < shape.size(); ++index)
+        {
+            if (index != 0)
+            {
+                text += ", ";
+            }
+            text += std::to_string(shape[index]);
+        }
+        return text + ")";
+    }
+
+    std::string format_text_shape(std::span<const std::string> shape)
+    {
+        std::string text = "[";
+        for (std::size_t index = 0; index < shape.size(); ++index)
+        {
+            if (index != 0)
+            {
+                text += ", ";
+            }
+            text += shape[index];
+        }
+        return text + "]";
+    }
 } // namespace pipeline_core::detail

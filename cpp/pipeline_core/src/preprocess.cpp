@@ -1,5 +1,7 @@
 #include "preprocess.h"
 
+#include "run_support.h"
+
 #include <opencv2/core.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
@@ -19,36 +21,6 @@ namespace
     [[noreturn]] void fail(const std::string &message)
     {
         throw std::runtime_error(message);
-    }
-
-    std::string format_names(const std::vector<std::string> &names)
-    {
-        std::string text = "[";
-        for (std::size_t index = 0; index < names.size(); ++index)
-        {
-            if (index != 0)
-            {
-                text += ", ";
-            }
-            text += '\'';
-            text += names[index];
-            text += '\'';
-        }
-        return text + "]";
-    }
-
-    std::string format_signed_shape(const std::vector<std::int64_t> &shape)
-    {
-        std::string text = "(";
-        for (std::size_t index = 0; index < shape.size(); ++index)
-        {
-            if (index != 0)
-            {
-                text += ", ";
-            }
-            text += std::to_string(shape[index]);
-        }
-        return text + ")";
     }
 } // namespace
 

@@ -5,6 +5,7 @@
 #include <chrono>
 #include <cstdint>
 #include <filesystem>
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -31,4 +32,13 @@ namespace pipeline_core::detail
 
     /// Return the last path component as UTF-8.
     std::string file_name(const std::filesystem::path &path);
+
+    /// Format names as `['a', 'b']`.
+    std::string format_names(std::span<const std::string> names);
+
+    /// Format signed dimensions as `(a, b)`.
+    std::string format_signed_shape(std::span<const std::int64_t> shape);
+
+    /// Format display dimensions as `[a, b]`.
+    std::string format_text_shape(std::span<const std::string> shape);
 } // namespace pipeline_core::detail
