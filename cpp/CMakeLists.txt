@@ -105,6 +105,7 @@ add_library(pipeline_core::pipeline_core
 target_sources(pipeline_core
     PRIVATE 
         pipeline_core/src/config.cpp
+        pipeline_core/src/inference.cpp
         pipeline_core/src/machine.cpp
         pipeline_core/src/memory.cpp
         pipeline_core/src/pipeline.cpp

@@ -1,9 +1,10 @@
 #include "pipeline_core/pipeline.h"
 
 #include "config.h"
+#include "inference.h"
 #include "pipeline_core/machine.h"
-#include "pipeline_core/stub.h"
 #include "pipeline_state.h"
+#include "postprocess.h"
 #include "preprocess.h"
 #include "run_support.h"
 
@@ -42,7 +43,8 @@ namespace pipeline_core
             const detail::Standardization standardization =
                 detail::read_standardization(args.model_folder_path);
 
-            auto state = std::make_unique<detail::PipelineState>(args.model_onnx_path);
+            auto state =
+                std::make_unique<detail::PipelineState>(args.model_onnx_path);
             state->confidence_threshold = confidence_threshold;
             state->standardization = standardization;
             g_state = std::move(state);
@@ -64,16 +66,16 @@ namespace pipeline_core
             return PreprocessedPayload{std::move(pixel_values)};
         }
 
-        InstanceSegmentationInferenceResults
+        detail::RawInferenceResults
         inference(const PreprocessedPayload &payload)
         {
-            return run_stub(payload);
+            return detail::run_session(require_state(), payload);
         }
 
         InstanceSegmentationInferenceResults
-        postprocess(InstanceSegmentationInferenceResults results)
+        postprocess(detail::RawInferenceResults raw)
         {
-            return results;
+            return detail::package_results(std::move(raw));
         }
     } // namespace
 
@@ -117,7 +119,7 @@ namespace pipeline_core
 
             memory.enter_stage("inference");
             start = Clock::now();
-            InstanceSegmentationInferenceResults raw_results =
+            detail::RawInferenceResults raw_results =
                 inference(processed_payload);
             inference_samples.push_back(elapsed_ms(start));
 
