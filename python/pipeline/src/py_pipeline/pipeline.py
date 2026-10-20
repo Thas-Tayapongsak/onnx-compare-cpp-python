@@ -99,7 +99,7 @@ def inference(
 def postprocess(
     raw: RawInferenceResults,
 ) -> InstanceSegmentationInferenceResults:
-    """Package the raw outputs; the P6 rules are deferred."""
+    """Package the raw outputs into the result fields."""
     return package_results(raw)
 
 
