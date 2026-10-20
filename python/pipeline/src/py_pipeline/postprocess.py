@@ -2,10 +2,14 @@
 
 __all__ = ["package_results"]
 
+import logging
+
 import numpy as np
 
 from .results import InstanceSegmentationInferenceResults
 from .run import RawInferenceResults
+
+logger = logging.getLogger(__name__)
 
 OUTPUT_NAMES = ("num_predictions", "scores", "labels", "boxes", "masks")
 
@@ -73,6 +77,15 @@ def _check_output_shapes(outputs: dict[str, np.ndarray]) -> None:
         )
 
 
+def _log_results(outputs: dict[str, np.ndarray]) -> None:
+    """Log the packaged fields in field order."""
+    details = ", ".join(
+        f"{name} {value.shape} {value.dtype}"
+        for name, value in outputs.items()
+    )
+    logger.info(f"Packaged results: {details}")
+
+
 def package_results(
     raw: RawInferenceResults,
 ) -> InstanceSegmentationInferenceResults:
@@ -82,6 +95,7 @@ def package_results(
         name: _convert_output(name, raw.outputs[name]) for name in OUTPUT_NAMES
     }
     _check_output_shapes(outputs)
+    _log_results(outputs)
     return InstanceSegmentationInferenceResults(
         num_predictions=outputs["num_predictions"],
         scores=outputs["scores"],
