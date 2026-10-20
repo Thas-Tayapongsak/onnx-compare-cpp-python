@@ -20,13 +20,14 @@ import onnxruntime as ort
 from .config import read_confidence_threshold, read_standardization
 from .machine import read_machine_info
 from .memory import MemoryMonitor
+from .preprocess import build_pixel_values, read_pixel_values_shape
 from .results import (
     InstanceSegmentationInferenceResults,
     MetaResults,
     RunOutput,
     RunTimings,
 )
-from .run import InferencePayload, RunInput
+from .run import InferencePayload, PreprocessedPayload, RunInput
 from .stub import run_stub
 
 logger = logging.getLogger(__name__)
@@ -80,13 +81,22 @@ def setup(run_input: RunInput) -> None:
     )
 
 
-def preprocess(payload: InferencePayload) -> InferencePayload:
-    """Return the session inputs; preprocessing is deferred."""
-    return payload
+def preprocess(payload: InferencePayload) -> PreprocessedPayload:
+    """Load the payload image and build the session pixel values."""
+    state = _require_state()
+    target_shape = read_pixel_values_shape(state.session)
+    pixel_values = build_pixel_values(
+        payload.image_path, target_shape, state.mean, state.std
+    )
+    logger.info(
+        f"Pixel values: session shape {target_shape}, "
+        f"preprocessed shape {pixel_values.shape}"
+    )
+    return PreprocessedPayload(pixel_values=pixel_values)
 
 
 def inference(
-    payload: InferencePayload,
+    payload: PreprocessedPayload,
 ) -> InstanceSegmentationInferenceResults:
     """Run the stub inference; the session is deferred."""
     return run_stub(payload)

@@ -5,8 +5,6 @@ __all__ = ["pipeline_main"]
 import logging
 import sys
 
-import numpy as np
-
 from .cli import ParsedArgs, build_parsed_args, parse_args
 from .memory import MemoryMonitor
 from .pipeline import _run_pipeline
@@ -14,8 +12,6 @@ from .results import prepare_output_dir, write_meta, write_outputs
 from .run import InferencePayload, RunInput
 
 logger = logging.getLogger(__name__)
-
-DEFAULT_PIXEL_VALUES_SHAPE = (1, 3, 64, 64)
 
 
 def configure_logging() -> None:
@@ -28,10 +24,8 @@ def configure_logging() -> None:
 
 
 def build_run_input(parsed_args: ParsedArgs) -> RunInput:
-    """Build the run input with the temporary stub payload."""
-    payload = InferencePayload(
-        pixel_values=np.zeros(DEFAULT_PIXEL_VALUES_SHAPE, dtype=np.float32),
-    )
+    """Build the run input with one image payload."""
+    payload = InferencePayload(image_path=parsed_args.image_path)
     return RunInput(parsed_args=parsed_args, inference_payloads=[payload])
 
 

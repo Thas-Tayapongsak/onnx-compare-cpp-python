@@ -5,11 +5,11 @@ __all__ = ["run_stub"]
 import numpy as np
 
 from .results import InstanceSegmentationInferenceResults
-from .run import InferencePayload
+from .run import PreprocessedPayload
 
 
 def run_stub(
-    payload: InferencePayload,
+    payload: PreprocessedPayload,
 ) -> InstanceSegmentationInferenceResults:
     """Temporary stub inference for building the pipeline."""
     target_height, target_width = payload.pixel_values.shape[2:4]
