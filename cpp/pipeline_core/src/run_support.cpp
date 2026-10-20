@@ -53,7 +53,8 @@ namespace pipeline_core::detail
 
     void log_info(std::string_view message)
     {
-        std::cerr << utc_now() << " - cpp_pipeline - INFO - " << message << '\n';
+        std::cerr << utc_now() << " - cpp_pipeline - INFO - " << message
+                  << '\n';
     }
 
     std::vector<std::vector<std::int64_t>>
