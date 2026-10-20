@@ -12,7 +12,7 @@ namespace
 namespace pipeline_core
 {
     InstanceSegmentationInferenceResults
-    run_stub(const InferencePayload &payload)
+    run_stub(const PreprocessedPayload &payload)
     {
         const std::size_t mask_height = payload.pixel_values.shape.at(2);
         const std::size_t mask_width = payload.pixel_values.shape.at(3);

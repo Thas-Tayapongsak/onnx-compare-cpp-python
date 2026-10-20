@@ -7,5 +7,5 @@ namespace pipeline_core
 {
     /// Temporary stand-in for the inference stage.
     InstanceSegmentationInferenceResults
-    run_stub(const InferencePayload &payload);
+    run_stub(const PreprocessedPayload &payload);
 } // namespace pipeline_core

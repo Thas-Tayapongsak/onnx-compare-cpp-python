@@ -3,6 +3,7 @@
 #include "config.h"
 #include "pipeline_core/machine.h"
 #include "pipeline_core/stub.h"
+#include "preprocess.h"
 #include "run_support.h"
 
 #include <onnxruntime_cxx_api.h>
@@ -10,6 +11,7 @@
 #include <chrono>
 #include <cstdint>
 #include <filesystem>
+#include <format>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -61,13 +63,24 @@ namespace pipeline_core
             g_state = std::move(state);
         }
 
-        InferencePayload preprocess(const InferencePayload &payload)
+        PreprocessedPayload preprocess(const InferencePayload &payload)
         {
-            return payload;
+            PipelineState &state = require_state();
+            const detail::PixelValuesShape target_shape =
+                detail::read_pixel_values_shape(state.session);
+            NDArray<float> pixel_values = detail::build_pixel_values(
+                payload.image_path, target_shape, state.standardization);
+
+            detail::log_info(std::format(
+                "Pixel values: session shape {}, preprocessed shape {}",
+                detail::format_shape(target_shape),
+                detail::format_shape(pixel_values.shape)));
+
+            return PreprocessedPayload{std::move(pixel_values)};
         }
 
         InstanceSegmentationInferenceResults
-        inference(const InferencePayload &payload)
+        inference(const PreprocessedPayload &payload)
         {
             return run_stub(payload);
         }
@@ -114,7 +127,7 @@ namespace pipeline_core
             const Clock::time_point total_start = Clock::now();
 
             Clock::time_point start = Clock::now();
-            InferencePayload processed_payload = preprocess(payload);
+            PreprocessedPayload processed_payload = preprocess(payload);
             preprocess_samples.push_back(elapsed_ms(start));
 
             memory.enter_stage("inference");

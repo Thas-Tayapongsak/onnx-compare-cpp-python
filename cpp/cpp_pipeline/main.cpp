@@ -4,30 +4,16 @@
 
 #include <pipeline_core/core.h>
 
-#include <cstddef>
 #include <exception>
 #include <format>
 #include <utility>
-#include <vector>
 
 namespace
 {
-    constexpr std::size_t kDefaultBatch = 1;
-    constexpr std::size_t kDefaultChannels = 3;
-    constexpr std::size_t kDefaultPixelHeight = 64;
-    constexpr std::size_t kDefaultPixelWidth = 64;
-
     pipeline_core::RunInput
     build_run_input(const pipeline_core::ParsedArgs &parsed_args)
     {
-        pipeline_core::InferencePayload payload;
-        const std::size_t pixel_count = kDefaultBatch * kDefaultChannels *
-                                        kDefaultPixelHeight *
-                                        kDefaultPixelWidth;
-        payload.pixel_values = pipeline_core::NDArray<float>{
-            {kDefaultBatch, kDefaultChannels, kDefaultPixelHeight,
-             kDefaultPixelWidth},
-            std::vector<float>(pixel_count, 0.0F)};
+        pipeline_core::InferencePayload payload{parsed_args.image_path};
 
         pipeline_core::RunInput run_input;
         run_input.parsed_args = parsed_args;

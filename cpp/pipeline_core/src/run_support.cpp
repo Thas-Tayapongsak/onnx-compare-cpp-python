@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <ctime>
 #include <iomanip>
+#include <iostream>
 #include <sstream>
 #include <stdexcept>
 #include <utility>
@@ -48,6 +49,11 @@ namespace pipeline_core::detail
         std::ostringstream text;
         text << std::put_time(&utc_time, "%Y-%m-%dT%H:%M:%SZ");
         return text.str();
+    }
+
+    void log_info(std::string_view message)
+    {
+        std::cerr << utc_now() << " - cpp_pipeline - INFO - " << message << '\n';
     }
 
     std::vector<std::vector<std::int64_t>>

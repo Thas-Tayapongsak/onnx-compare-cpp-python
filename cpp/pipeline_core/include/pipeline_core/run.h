@@ -17,6 +17,11 @@ namespace pipeline_core
 
     struct InferencePayload
     {
+        std::filesystem::path image_path;
+    };
+
+    struct PreprocessedPayload
+    {
         NDArray<float> pixel_values;
     };
 

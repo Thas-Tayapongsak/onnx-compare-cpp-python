@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace pipeline_core::detail
@@ -20,6 +21,9 @@ namespace pipeline_core::detail
 
     /// Return the current UTC time in ISO 8601 seconds precision.
     std::string utc_now();
+
+    /// Write an informational log line in the executable log format.
+    void log_info(std::string_view message);
 
     /// Return the target sizes as nested lists for `meta.json`.
     std::vector<std::vector<std::int64_t>>
