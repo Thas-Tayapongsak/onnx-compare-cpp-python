@@ -8,7 +8,6 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <cstring>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -94,11 +93,12 @@ namespace pipeline_core::detail
                                ONNXTensorElementDataType expected_type)
         {
             CopyPlan plan = make_copy_plan(output, expected_type, sizeof(T));
-            std::vector<T> data(plan.element_count);
-            if (plan.byte_count != 0)
+            std::vector<T> data;
+            if (plan.element_count != 0)
             {
-                std::memcpy(data.data(), output.value.GetTensorRawData(),
-                            plan.byte_count);
+                const auto *source =
+                    static_cast<const T *>(output.value.GetTensorRawData());
+                data.assign(source, source + plan.element_count);
             }
             return NDArray<T>{std::move(plan.shape), std::move(data)};
         }

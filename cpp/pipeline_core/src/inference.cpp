@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -16,6 +17,15 @@ namespace pipeline_core::detail
 {
     namespace
     {
+        static_assert(
+            std::string_view{kSessionInputNames[0]} == "pixel_values" &&
+                std::string_view{kSessionInputNames[1]} ==
+                    "confidence_threshold" &&
+                std::string_view{kSessionInputNames[2]} ==
+                    "nms_iou_threshold" &&
+                std::string_view{kSessionInputNames[3]} == "target_sizes",
+            "kSessionInputNames order must match the input value order");
+
         [[noreturn]] void fail(const std::string &message)
         {
             throw std::runtime_error(message);
