@@ -39,6 +39,40 @@ def _convert_output(name: str, value: np.ndarray) -> np.ndarray:
     return value.astype(expected, copy=False)
 
 
+def _check_output_shapes(outputs: dict[str, np.ndarray]) -> None:
+    """Check the prediction count and the cross-output row counts."""
+    num_predictions = outputs["num_predictions"]
+    if num_predictions.shape != (1,):
+        raise ValueError(
+            "Output 'num_predictions' must have shape (1,); "
+            f"got {num_predictions.shape}"
+        )
+    count = int(num_predictions.item())
+    if count < 0:
+        raise ValueError(
+            f"Output 'num_predictions' must not be negative; got {count}"
+        )
+
+    row_shapes = {
+        "scores": (count,),
+        "labels": (count,),
+        "boxes": (count, 4),
+    }
+    for name, expected in row_shapes.items():
+        if outputs[name].shape != expected:
+            raise ValueError(
+                f"Output {name!r} must have shape {expected}; "
+                f"got {outputs[name].shape}"
+            )
+
+    masks = outputs["masks"]
+    if masks.ndim != 3 or masks.shape[0] != count:
+        raise ValueError(
+            f"Output 'masks' must have shape ({count}, H, W); "
+            f"got {masks.shape}"
+        )
+
+
 def package_results(
     raw: RawInferenceResults,
 ) -> InstanceSegmentationInferenceResults:
@@ -47,6 +81,7 @@ def package_results(
     outputs = {
         name: _convert_output(name, raw.outputs[name]) for name in OUTPUT_NAMES
     }
+    _check_output_shapes(outputs)
     return InstanceSegmentationInferenceResults(
         num_predictions=outputs["num_predictions"],
         scores=outputs["scores"],
