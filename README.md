@@ -120,6 +120,8 @@ width.
 `preprocess_ram_gb`, `inference_ram_gb`, `postprocess_ram_gb`, `ram_gb`,
 `setup_vram_gb`, `preprocess_vram_gb`, `inference_vram_gb`,
 `postprocess_vram_gb`, and `vram_gb`.
+`execution_provider` is the ONNX Runtime execution provider name the run used,
+for example `CPUExecutionProvider`.
 The `*_ms` fields are integer milliseconds. `setup_ms` is measured once per
 run. The preprocess, inference, and postprocess fields are medians across the
 inference payloads, one sample per payload. `duration_ms` is the median
