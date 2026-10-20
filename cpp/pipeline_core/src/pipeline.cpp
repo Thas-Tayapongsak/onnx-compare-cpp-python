@@ -46,6 +46,8 @@ namespace pipeline_core
             auto state =
                 std::make_unique<detail::PipelineState>(args.model_onnx_path);
             state->confidence_threshold = confidence_threshold;
+            state->nms_iou_threshold = 1.0;
+            state->target_sizes = NDArray<std::int64_t>{{1, 2}, {0, 0}};
             state->standardization = standardization;
             g_state = std::move(state);
             detail::log_info(std::format(
