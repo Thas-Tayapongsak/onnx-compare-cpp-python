@@ -3,6 +3,7 @@
 __all__ = [
     "InferencePayload",
     "PreprocessedPayload",
+    "RawInferenceResults",
     "RunInput",
     "RunState",
 ]
@@ -28,6 +29,13 @@ class PreprocessedPayload:
     """Session pixel values for one image."""
 
     pixel_values: np.ndarray
+
+
+@dataclass
+class RawInferenceResults:
+    """Raw session output arrays in session output-name order."""
+
+    outputs: dict[str, np.ndarray]
 
 
 @dataclass
