@@ -1,5 +1,6 @@
 #include "postprocess.h"
 
+#include "postprocess_checks.h"
 #include "run_support.h"
 #include "session_contract.h"
 
@@ -163,6 +164,7 @@ namespace pipeline_core::detail
                                            ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT);
         results.masks = copy_output<std::uint8_t>(
             require_output(raw, "masks"), ONNX_TENSOR_ELEMENT_DATA_TYPE_BOOL);
+        check_result_counts(results);
         return results;
     }
 } // namespace pipeline_core::detail
