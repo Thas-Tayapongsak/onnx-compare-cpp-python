@@ -3,6 +3,7 @@
 #include "config.h"
 #include "pipeline_core/machine.h"
 #include "pipeline_core/stub.h"
+#include "pipeline_state.h"
 #include "preprocess.h"
 #include "run_support.h"
 
@@ -22,25 +23,9 @@ namespace pipeline_core
 {
     namespace
     {
-        struct PipelineState
-        {
-            explicit PipelineState(const std::filesystem::path &model_path)
-                : session(environment, model_path.c_str(), session_options)
-            {
-            }
+        std::unique_ptr<detail::PipelineState> g_state;
 
-            Ort::Env environment{ORT_LOGGING_LEVEL_WARNING, "cpp_pipeline"};
-            Ort::SessionOptions session_options;
-            Ort::Session session;
-            double confidence_threshold{0.0};
-            double nms_iou_threshold{1.0};
-            NDArray<std::int64_t> target_sizes{{1, 2}, {0, 0}};
-            detail::Standardization standardization;
-        };
-
-        std::unique_ptr<PipelineState> g_state;
-
-        PipelineState &require_state()
+        detail::PipelineState &require_state()
         {
             if (!g_state)
             {
@@ -57,7 +42,7 @@ namespace pipeline_core
             const detail::Standardization standardization =
                 detail::read_standardization(args.model_folder_path);
 
-            auto state = std::make_unique<PipelineState>(args.model_onnx_path);
+            auto state = std::make_unique<detail::PipelineState>(args.model_onnx_path);
             state->confidence_threshold = confidence_threshold;
             state->standardization = standardization;
             g_state = std::move(state);
@@ -65,7 +50,7 @@ namespace pipeline_core
 
         PreprocessedPayload preprocess(const InferencePayload &payload)
         {
-            PipelineState &state = require_state();
+            detail::PipelineState &state = require_state();
             const detail::PixelValuesShape target_shape =
                 detail::read_pixel_values_shape(state.session);
             NDArray<float> pixel_values = detail::build_pixel_values(
@@ -118,7 +103,7 @@ namespace pipeline_core
         memory.enter_stage("setup");
         const Clock::time_point setup_start = Clock::now();
         setup_pipeline(run_input);
-        PipelineState &state = require_state();
+        detail::PipelineState &state = require_state();
         const int setup_ms = elapsed_ms(setup_start);
 
         for (const InferencePayload &payload : run_input.inference_payloads)
