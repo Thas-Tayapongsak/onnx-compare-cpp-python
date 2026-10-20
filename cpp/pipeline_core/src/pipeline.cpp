@@ -48,6 +48,8 @@ namespace pipeline_core
             state->confidence_threshold = confidence_threshold;
             state->standardization = standardization;
             g_state = std::move(state);
+            detail::log_info(std::format(
+                "ONNX Runtime provider: {}", require_state().execution_provider));
         }
 
         PreprocessedPayload preprocess(const InferencePayload &payload)
@@ -155,7 +157,7 @@ namespace pipeline_core
             .inference_ms = timings.inference_ms,
             .postprocess_ms = timings.postprocess_ms,
             .duration_ms = timings.duration_ms,
-            .execution_provider = "stub",
+            .execution_provider = state.execution_provider,
             .cpu = machine.cpu,
             .gpu = machine.gpu,
             .setup_ram_gb = memory.stage_ram_gb("setup"),
