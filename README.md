@@ -50,10 +50,13 @@ scripts/build.ps1
 The raw pipeline command is:
 
 ```text
-uv run --project python/pipeline py-pipeline --model <model folder> --image <image> --output <output folder>
+uv run --project python/pipeline py-pipeline --model <model folder> --image <image> --output <output folder> --repeat <count>
 ```
 
 `--model` and `--image` are required. `--output` defaults to `runs`.
+`--repeat` sets how many times the pipeline runs the same image and defaults to
+`1`. It must be an integer of at least `1`. The pipeline runs all repeats in one
+process with one setup, then writes the last repeat's arrays.
 Both pipelines support `-h` and `--help`.
 The pipeline writes `outputs.npz` and `meta.json` directly into the folder it
 receives.
@@ -61,16 +64,17 @@ receives.
 The raw comparison command is:
 
 ```text
-uv run --project python/compare compare --model <model folder> --image <image> --output <run root>
+uv run --project python/compare compare --model <model folder> --image <image> --output <run root> --repeat <count>
 ```
 
-The compare program takes the same three flags. `--output` defaults to `runs`
+The compare program takes the same flags. `--output` defaults to `runs`
 and is the root that holds the run folder. The program creates
 `<run root>/<YYYYMMDDTHHMMSSZ>-<model folder name>/`, runs both pipelines into
-its `python/` and `cpp/` folders, and writes `report.json`.
+its `python/` and `cpp/` folders, and writes `report.json`. It passes
+`--repeat` to both pipelines unchanged.
 
-`scripts/compare.ps1` passes `--model`, `--image`, and `--output` to `compare`.
-Run it from the repository root.
+`scripts/compare.ps1` forwards its arguments to `compare`. Run it from the
+repository root.
 
 ## Models and input images
 
@@ -113,32 +117,38 @@ width.
 
 `meta.json` holds the run details: `pipeline`, `model`, `input_image`,
 `confidence_threshold`, `nms_iou_threshold`, `target_sizes`, `created_utc`,
-`setup_ms`, `preprocess_ms`, `inference_ms`, `postprocess_ms`,
+`repeats`, `setup_ms`, `preprocess_ms`, `inference_ms`, `postprocess_ms`,
 `duration_ms`, `execution_provider`, `cpu`, `gpu`, `setup_ram_gb`,
 `preprocess_ram_gb`, `inference_ram_gb`, `postprocess_ram_gb`, `ram_gb`,
 `setup_vram_gb`, `preprocess_vram_gb`, `inference_vram_gb`,
 `postprocess_vram_gb`, and `vram_gb`.
 `execution_provider` is the ONNX Runtime execution provider name the run used,
 for example `CPUExecutionProvider`.
-The `*_ms` fields are integer milliseconds. `setup_ms` is measured once per
-run. The preprocess, inference, and postprocess fields are medians across the
-inference payloads, one sample per payload. `duration_ms` is the median
-payload time from preprocess through postprocess; it excludes setup.
+`repeats` is the repeat count. The `*_ms` fields are integer milliseconds.
+`setup_ms` is measured once per run. The preprocess, inference, and
+postprocess fields are medians across the repeats, one sample per repeat.
+`duration_ms` is the median repeat time from preprocess through postprocess; it
+excludes setup.
 
 `cpu` is the machine CPU name. `gpu` is the CUDA device used by the process,
 or `null`. The RAM fields are the working set of the pipeline process, not the
 total machine memory. The memory sampler takes a sample every 50 ms. A stage
-RAM field is the highest sample during that stage. The payload-stage values
-are maxima across the payloads, and `ram_gb` is the whole-run sampled peak
-through output writing. The VRAM fields are the VRAM used
-by the process. They are `0` when no CUDA device is used. The `_gb` fields use
-2^30 bytes.
+RAM field is the highest sample during that stage. The preprocess, inference,
+and postprocess RAM fields are medians of the per-repeat peaks, one peak per
+repeat. `ram_gb` is the whole-run sampled peak through output writing. The VRAM
+fields are the VRAM used by the process. They are `0` when no CUDA device is
+used. The `_gb` fields use 2^30 bytes.
+
+Each repeat runs in one process with one setup and reads the same image again.
+The report describes the last repeat's arrays. The arrays of different repeats
+are not compared.
 
 `report.json` holds the comparison result. It has three objects: `outputs`,
 `configuration`, and `measurements`.
 
 - `outputs`: the `outputs.npz` comparison, one boolean per key.
 - `configuration`: the Python and C++ values of the run settings.
-- `measurements`: the Python and C++ timing and memory values.
+- `measurements`: the repeat count, the Python and C++ timing values, and the
+  Python and C++ memory values.
 
 Load `outputs.npz` with `numpy.load` and `meta.json` with `json.load`.
