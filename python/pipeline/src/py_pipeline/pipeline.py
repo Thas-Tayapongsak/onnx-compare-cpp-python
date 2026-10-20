@@ -17,8 +17,10 @@ import numpy as np
 import onnxruntime as ort
 
 from .config import read_confidence_threshold, read_standardization
+from .inference import run_session
 from .machine import read_machine_info
 from .memory import MemoryMonitor
+from .postprocess import package_results
 from .preprocess import build_pixel_values, read_pixel_values_shape
 from .results import (
     InstanceSegmentationInferenceResults,
@@ -29,10 +31,10 @@ from .results import (
 from .run import (
     InferencePayload,
     PreprocessedPayload,
+    RawInferenceResults,
     RunInput,
     RunState,
 )
-from .stub import run_stub
 
 logger = logging.getLogger(__name__)
 
@@ -89,16 +91,16 @@ def preprocess(payload: InferencePayload) -> PreprocessedPayload:
 
 def inference(
     payload: PreprocessedPayload,
-) -> InstanceSegmentationInferenceResults:
-    """Run the stub inference; the session is deferred."""
-    return run_stub(payload)
+) -> RawInferenceResults:
+    """Run the session and return the raw outputs."""
+    return run_session(_require_state(), payload)
 
 
 def postprocess(
-    results: InstanceSegmentationInferenceResults,
+    raw: RawInferenceResults,
 ) -> InstanceSegmentationInferenceResults:
-    """Return the final results; postprocessing is deferred."""
-    return results
+    """Package the raw outputs; the P6 rules are deferred."""
+    return package_results(raw)
 
 
 def _elapsed_ms(start: float) -> int:

@@ -30,7 +30,7 @@ def build_run_input(parsed_args: ParsedArgs) -> RunInput:
 
 
 def pipeline_main() -> None:
-    """Run the pipeline: parse arguments, run the stub, write results."""
+    """Run the pipeline: parse arguments, run the pipeline, write results."""
     configure_logging()
     logger.info("Starting inference pipeline")
     logger.info("===========================")
