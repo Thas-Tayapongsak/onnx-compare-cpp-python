@@ -48,7 +48,7 @@ namespace
         Json data;
         try
         {
-            file >> data;
+            data = Json::parse(file);
         }
         catch (const Json::exception &error)
         {
