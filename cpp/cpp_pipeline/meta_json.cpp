@@ -1,156 +1,46 @@
 #include "log.h"
 #include "results.h"
 
-#include <cstddef>
-#include <cstdint>
+#include <nlohmann/json.hpp>
+
 #include <filesystem>
 #include <format>
 #include <fstream>
-#include <ostream>
 #include <stdexcept>
-#include <string>
-#include <string_view>
-#include <vector>
 
 namespace
 {
-    void write_json_string(std::ostream &out, std::string_view value)
+    nlohmann::ordered_json
+    build_meta_json(const pipeline_core::MetaResults &meta)
     {
-        out << '"';
-        for (const char character : value)
-        {
-            const unsigned char byte = static_cast<unsigned char>(character);
-            switch (byte)
-            {
-            case '"':
-                out << "\\\"";
-                break;
-            case '\\':
-                out << "\\\\";
-                break;
-            case '\b':
-                out << "\\b";
-                break;
-            case '\f':
-                out << "\\f";
-                break;
-            case '\n':
-                out << "\\n";
-                break;
-            case '\r':
-                out << "\\r";
-                break;
-            case '\t':
-                out << "\\t";
-                break;
-            default:
-                if (byte < 0x20U)
-                {
-                    out << std::format("\\u{:04x}",
-                                       static_cast<unsigned int>(byte));
-                }
-                else
-                {
-                    out << static_cast<char>(byte);
-                }
-                break;
-            }
-        }
-        out << '"';
-    }
-
-    void write_json_number(std::ostream &out, double value)
-    {
-        std::string text = std::format("{}", value);
-        if (text.find_first_of(".eE") == std::string::npos)
-        {
-            text += ".0";
-        }
-        out << text;
-    }
-
-    void write_target_sizes(
-        std::ostream &out,
-        const std::vector<std::vector<std::int64_t>> &target_sizes)
-    {
-        out << '[';
-        for (std::size_t row = 0; row < target_sizes.size(); ++row)
-        {
-            if (row != 0U)
-            {
-                out << ", ";
-            }
-            out << '[';
-            for (std::size_t column = 0; column < target_sizes[row].size();
-                 ++column)
-            {
-                if (column != 0U)
-                {
-                    out << ", ";
-                }
-                out << target_sizes[row][column];
-            }
-            out << ']';
-        }
-        out << ']';
-    }
-
-    void write_meta_fields(std::ostream &out,
-                           const pipeline_core::MetaResults &meta)
-    {
-        out << "{\"pipeline\": ";
-        write_json_string(out, meta.pipeline);
-        out << ", \"model\": ";
-        write_json_string(out, meta.model);
-        out << ", \"input_image\": ";
-        write_json_string(out, meta.input_image);
-        out << ", \"confidence_threshold\": ";
-        write_json_number(out, meta.confidence_threshold);
-        out << ", \"nms_iou_threshold\": ";
-        write_json_number(out, meta.nms_iou_threshold);
-        out << ", \"target_sizes\": ";
-        write_target_sizes(out, meta.target_sizes);
-        out << ", \"created_utc\": ";
-        write_json_string(out, meta.created_utc);
-        out << ", \"setup_ms\": " << meta.setup_ms;
-        out << ", \"preprocess_ms\": " << meta.preprocess_ms;
-        out << ", \"inference_ms\": " << meta.inference_ms;
-        out << ", \"postprocess_ms\": " << meta.postprocess_ms;
-        out << ", \"duration_ms\": " << meta.duration_ms;
-        out << ", \"execution_provider\": ";
-        write_json_string(out, meta.execution_provider);
-        out << ", \"cpu\": ";
-        write_json_string(out, meta.cpu);
-        out << ", \"gpu\": ";
-        if (meta.gpu.has_value())
-        {
-            write_json_string(out, *meta.gpu);
-        }
-        else
-        {
-            out << "null";
-        }
-        out << ", \"setup_ram_gb\": ";
-        write_json_number(out, meta.setup_ram_gb);
-        out << ", \"preprocess_ram_gb\": ";
-        write_json_number(out, meta.preprocess_ram_gb);
-        out << ", \"inference_ram_gb\": ";
-        write_json_number(out, meta.inference_ram_gb);
-        out << ", \"postprocess_ram_gb\": ";
-        write_json_number(out, meta.postprocess_ram_gb);
-        out << ", \"ram_gb\": ";
-        write_json_number(out, meta.ram_gb);
-        out << ", \"setup_vram_gb\": ";
-        write_json_number(out, meta.setup_vram_gb);
-        out << ", \"preprocess_vram_gb\": ";
-        write_json_number(out, meta.preprocess_vram_gb);
-        out << ", \"inference_vram_gb\": ";
-        write_json_number(out, meta.inference_vram_gb);
-        out << ", \"postprocess_vram_gb\": ";
-        write_json_number(out, meta.postprocess_vram_gb);
-        out << ", \"vram_gb\": ";
-        write_json_number(out, meta.vram_gb);
-        out << '}';
+        nlohmann::ordered_json data;
+        data["pipeline"] = meta.pipeline;
+        data["model"] = meta.model;
+        data["input_image"] = meta.input_image;
+        data["confidence_threshold"] = meta.confidence_threshold;
+        data["nms_iou_threshold"] = meta.nms_iou_threshold;
+        data["target_sizes"] = meta.target_sizes;
+        data["created_utc"] = meta.created_utc;
+        data["setup_ms"] = meta.setup_ms;
+        data["preprocess_ms"] = meta.preprocess_ms;
+        data["inference_ms"] = meta.inference_ms;
+        data["postprocess_ms"] = meta.postprocess_ms;
+        data["duration_ms"] = meta.duration_ms;
+        data["execution_provider"] = meta.execution_provider;
+        data["cpu"] = meta.cpu;
+        data["gpu"] = meta.gpu.has_value() ? nlohmann::ordered_json(*meta.gpu)
+                                           : nlohmann::ordered_json(nullptr);
+        data["setup_ram_gb"] = meta.setup_ram_gb;
+        data["preprocess_ram_gb"] = meta.preprocess_ram_gb;
+        data["inference_ram_gb"] = meta.inference_ram_gb;
+        data["postprocess_ram_gb"] = meta.postprocess_ram_gb;
+        data["ram_gb"] = meta.ram_gb;
+        data["setup_vram_gb"] = meta.setup_vram_gb;
+        data["preprocess_vram_gb"] = meta.preprocess_vram_gb;
+        data["inference_vram_gb"] = meta.inference_vram_gb;
+        data["postprocess_vram_gb"] = meta.postprocess_vram_gb;
+        data["vram_gb"] = meta.vram_gb;
+        return data;
     }
 } // namespace
 
@@ -166,7 +56,8 @@ namespace cpp_pipeline
             throw std::runtime_error(
                 std::format("Could not open {} for writing", path.string()));
         }
-        write_meta_fields(file, meta);
+
+        file << build_meta_json(meta).dump();
         file.close();
         if (!file)
         {
