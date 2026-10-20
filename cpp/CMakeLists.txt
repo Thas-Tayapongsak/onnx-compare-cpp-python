@@ -114,7 +114,6 @@ target_sources(pipeline_core
         pipeline_core/src/preprocess.cpp
         pipeline_core/src/run_support.cpp
         pipeline_core/src/session_contract.cpp
-        pipeline_core/src/stub.cpp
     
     PUBLIC 
         FILE_SET HEADERS 
@@ -127,7 +126,6 @@ target_sources(pipeline_core
             pipeline_core/include/pipeline_core/pipeline.h
             pipeline_core/include/pipeline_core/results.h
             pipeline_core/include/pipeline_core/run.h
-            pipeline_core/include/pipeline_core/stub.h
 )
 target_include_directories(pipeline_core
     PUBLIC
