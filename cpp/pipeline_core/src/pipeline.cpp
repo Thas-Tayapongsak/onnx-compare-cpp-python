@@ -20,9 +20,9 @@ namespace pipeline_core
 {
     namespace
     {
-        struct RunState
+        struct PipelineState
         {
-            explicit RunState(const std::filesystem::path &model_path)
+            explicit PipelineState(const std::filesystem::path &model_path)
                 : session(environment, model_path.c_str(), session_options)
             {
             }
@@ -36,9 +36,9 @@ namespace pipeline_core
             detail::Standardization standardization;
         };
 
-        std::unique_ptr<RunState> g_state;
+        std::unique_ptr<PipelineState> g_state;
 
-        RunState &require_state()
+        PipelineState &require_state()
         {
             if (!g_state)
             {
@@ -47,7 +47,7 @@ namespace pipeline_core
             return *g_state;
         }
 
-        void setup(const RunInput &run_input)
+        void setup_pipeline(const RunInput &run_input)
         {
             const ParsedArgs &args = run_input.parsed_args;
             const double confidence_threshold =
@@ -55,7 +55,7 @@ namespace pipeline_core
             const detail::Standardization standardization =
                 detail::read_standardization(args.model_folder_path);
 
-            auto state = std::make_unique<RunState>(args.model_onnx_path);
+            auto state = std::make_unique<PipelineState>(args.model_onnx_path);
             state->confidence_threshold = confidence_threshold;
             state->standardization = standardization;
             g_state = std::move(state);
@@ -104,8 +104,8 @@ namespace pipeline_core
 
         memory.enter_stage("setup");
         const Clock::time_point setup_start = Clock::now();
-        setup(run_input);
-        RunState &state = require_state();
+        setup_pipeline(run_input);
+        PipelineState &state = require_state();
         const int setup_ms = elapsed_ms(setup_start);
 
         for (const InferencePayload &payload : run_input.inference_payloads)
