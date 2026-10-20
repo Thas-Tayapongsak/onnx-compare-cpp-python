@@ -26,20 +26,6 @@ namespace
 
 namespace pipeline_core::detail
 {
-    std::string format_shape(std::span<const std::size_t> shape)
-    {
-        std::string text = "(";
-        for (std::size_t index = 0; index < shape.size(); ++index)
-        {
-            if (index != 0)
-            {
-                text += ", ";
-            }
-            text += std::to_string(shape[index]);
-        }
-        return text + ")";
-    }
-
     PixelValuesShape read_pixel_values_shape(const Ort::Session &session)
     {
         Ort::AllocatorWithDefaultOptions allocator;

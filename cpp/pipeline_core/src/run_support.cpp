@@ -127,6 +127,20 @@ namespace pipeline_core::detail
         return text + ")";
     }
 
+    std::string format_size_shape(std::span<const std::size_t> shape)
+    {
+        std::string text = "(";
+        for (std::size_t index = 0; index < shape.size(); ++index)
+        {
+            if (index != 0)
+            {
+                text += ", ";
+            }
+            text += std::to_string(shape[index]);
+        }
+        return text + ")";
+    }
+
     std::string format_text_shape(std::span<const std::string> shape)
     {
         std::string text = "[";

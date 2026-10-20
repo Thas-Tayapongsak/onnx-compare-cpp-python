@@ -3,6 +3,7 @@
 #include "pipeline_core/array.h"
 
 #include <chrono>
+#include <cstddef>
 #include <cstdint>
 #include <filesystem>
 #include <span>
@@ -38,6 +39,9 @@ namespace pipeline_core::detail
 
     /// Format signed dimensions as `(a, b)`.
     std::string format_signed_shape(std::span<const std::int64_t> shape);
+
+    /// Format dimensions as `(a, b)`.
+    std::string format_size_shape(std::span<const std::size_t> shape);
 
     /// Format display dimensions as `[a, b]`.
     std::string format_text_shape(std::span<const std::string> shape);

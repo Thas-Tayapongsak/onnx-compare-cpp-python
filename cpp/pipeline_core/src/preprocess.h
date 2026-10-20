@@ -8,7 +8,6 @@
 #include <array>
 #include <cstddef>
 #include <filesystem>
-#include <span>
 #include <string>
 
 namespace pipeline_core::detail
@@ -22,7 +21,4 @@ namespace pipeline_core::detail
     NDArray<float> build_pixel_values(const std::filesystem::path &image_path,
                                       const PixelValuesShape &target_shape,
                                       const Standardization &standardization);
-
-    /// Format dimensions as `(a, b, c, d)`.
-    std::string format_shape(std::span<const std::size_t> shape);
 } // namespace pipeline_core::detail

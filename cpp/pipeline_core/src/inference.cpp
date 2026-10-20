@@ -33,8 +33,8 @@ namespace pipeline_core::detail
             if (!valid)
             {
                 fail("Pixel values must have session shape " +
-                     format_shape(session_shape) + "; got " +
-                     format_shape(shape));
+                     format_size_shape(session_shape) + "; got " +
+                     format_size_shape(shape));
             }
 
             std::size_t count = 1;
@@ -47,7 +47,7 @@ namespace pipeline_core::detail
                 fail("Pixel values hold " +
                      std::to_string(payload.pixel_values.data.size()) +
                      " elements; expected " + std::to_string(count) +
-                     " for shape " + format_shape(shape));
+                     " for shape " + format_size_shape(shape));
             }
         }
 

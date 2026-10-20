@@ -60,8 +60,8 @@ namespace pipeline_core
 
             detail::log_info(std::format(
                 "Pixel values: session shape {}, preprocessed shape {}",
-                detail::format_shape(target_shape),
-                detail::format_shape(pixel_values.shape)));
+                detail::format_size_shape(target_shape),
+                detail::format_size_shape(pixel_values.shape)));
 
             return PreprocessedPayload{std::move(pixel_values)};
         }
