@@ -50,8 +50,8 @@ namespace pipeline_core
             state->target_sizes = NDArray<std::int64_t>{{1, 2}, {0, 0}};
             state->standardization = standardization;
             g_state = std::move(state);
-            detail::log_info(std::format(
-                "ONNX Runtime provider: {}", require_state().execution_provider));
+            detail::log_info(std::format("ONNX Runtime provider: {}",
+                                         require_state().execution_provider));
         }
 
         PreprocessedPayload preprocess(const InferencePayload &payload)
