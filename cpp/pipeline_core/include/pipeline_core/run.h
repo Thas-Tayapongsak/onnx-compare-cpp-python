@@ -2,7 +2,6 @@
 
 #include "pipeline_core/array.h"
 
-#include <cstdint>
 #include <filesystem>
 #include <vector>
 
@@ -19,9 +18,6 @@ namespace pipeline_core
     struct InferencePayload
     {
         NDArray<float> pixel_values;
-        double confidence_threshold{0.0};
-        double nms_iou_threshold{0.0};
-        NDArray<std::int64_t> target_sizes;
     };
 
     struct RunInput

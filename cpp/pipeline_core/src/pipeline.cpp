@@ -1,11 +1,16 @@
 #include "pipeline_core/pipeline.h"
 
+#include "config.h"
 #include "pipeline_core/machine.h"
 #include "pipeline_core/stub.h"
 #include "run_support.h"
 
+#include <onnxruntime_cxx_api.h>
+
 #include <chrono>
-#include <optional>
+#include <cstdint>
+#include <filesystem>
+#include <memory>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -13,40 +18,73 @@
 
 namespace pipeline_core
 {
+    namespace
+    {
+        struct RunState
+        {
+            explicit RunState(const std::filesystem::path &model_path)
+                : session(environment, model_path.c_str(), session_options)
+            {
+            }
+
+            Ort::Env environment{ORT_LOGGING_LEVEL_WARNING, "cpp_pipeline"};
+            Ort::SessionOptions session_options;
+            Ort::Session session;
+            double confidence_threshold{0.0};
+            double nms_iou_threshold{1.0};
+            NDArray<std::int64_t> target_sizes{{1, 2}, {0, 0}};
+            detail::Standardization standardization;
+        };
+
+        std::unique_ptr<RunState> g_state;
+
+        RunState &require_state()
+        {
+            if (!g_state)
+            {
+                throw std::runtime_error("Pipeline setup has not run");
+            }
+            return *g_state;
+        }
+
+        void setup(const RunInput &run_input)
+        {
+            const ParsedArgs &args = run_input.parsed_args;
+            const double confidence_threshold =
+                detail::read_confidence_threshold(args.model_folder_path);
+            const detail::Standardization standardization =
+                detail::read_standardization(args.model_folder_path);
+
+            auto state = std::make_unique<RunState>(args.model_onnx_path);
+            state->confidence_threshold = confidence_threshold;
+            state->standardization = standardization;
+            g_state = std::move(state);
+        }
+
+        InferencePayload preprocess(const InferencePayload &payload)
+        {
+            return payload;
+        }
+
+        InstanceSegmentationInferenceResults
+        inference(const InferencePayload &payload)
+        {
+            return run_stub(payload);
+        }
+
+        InstanceSegmentationInferenceResults
+        postprocess(InstanceSegmentationInferenceResults results)
+        {
+            return results;
+        }
+    } // namespace
+
     using detail::elapsed_ms;
     using detail::file_name;
     using detail::median_ms;
     using detail::target_sizes_list;
     using detail::utc_now;
     using Clock = detail::Clock;
-
-    RunState setup(const RunInput &run_input)
-    {
-        static_cast<void>(run_input);
-        return RunState{};
-    }
-
-    InferencePayload preprocess(const InferencePayload &payload,
-                                RunState &state)
-    {
-        static_cast<void>(state);
-        return payload;
-    }
-
-    InstanceSegmentationInferenceResults
-    inference(const InferencePayload &payload, RunState &state)
-    {
-        static_cast<void>(state);
-        return run_stub(payload);
-    }
-
-    InstanceSegmentationInferenceResults
-    postprocess(InstanceSegmentationInferenceResults results,
-                const InferencePayload &payload)
-    {
-        static_cast<void>(payload);
-        return results;
-    }
 
     RunOutput run_pipeline(const RunInput &run_input, MemoryMonitor &memory)
     {
@@ -60,14 +98,14 @@ namespace pipeline_core
         std::vector<int> postprocess_samples;
         std::vector<int> total_samples;
         std::vector<InstanceSegmentationInferenceResults> results;
-        std::optional<InferencePayload> first_payload;
 
         const std::string created_utc = utc_now();
         const MachineInfo machine = read_machine_info();
 
         memory.enter_stage("setup");
         const Clock::time_point setup_start = Clock::now();
-        RunState state = setup(run_input);
+        setup(run_input);
+        RunState &state = require_state();
         const int setup_ms = elapsed_ms(setup_start);
 
         for (const InferencePayload &payload : run_input.inference_payloads)
@@ -76,33 +114,23 @@ namespace pipeline_core
             const Clock::time_point total_start = Clock::now();
 
             Clock::time_point start = Clock::now();
-            InferencePayload processed_payload = preprocess(payload, state);
+            InferencePayload processed_payload = preprocess(payload);
             preprocess_samples.push_back(elapsed_ms(start));
 
             memory.enter_stage("inference");
             start = Clock::now();
             InstanceSegmentationInferenceResults raw_results =
-                inference(processed_payload, state);
+                inference(processed_payload);
             inference_samples.push_back(elapsed_ms(start));
 
             memory.enter_stage("postprocess");
             start = Clock::now();
             InstanceSegmentationInferenceResults final_results =
-                postprocess(std::move(raw_results), processed_payload);
+                postprocess(std::move(raw_results));
             postprocess_samples.push_back(elapsed_ms(start));
 
             total_samples.push_back(elapsed_ms(total_start));
             results.push_back(std::move(final_results));
-
-            if (!first_payload.has_value())
-            {
-                first_payload = std::move(processed_payload);
-            }
-        }
-
-        if (!first_payload.has_value())
-        {
-            throw std::runtime_error("No processed inference payload");
         }
 
         memory.enter_stage("output");
@@ -118,9 +146,9 @@ namespace pipeline_core
             .pipeline = "cpp",
             .model = file_name(run_input.parsed_args.model_folder_path),
             .input_image = file_name(run_input.parsed_args.image_path),
-            .confidence_threshold = first_payload->confidence_threshold,
-            .nms_iou_threshold = first_payload->nms_iou_threshold,
-            .target_sizes = target_sizes_list(first_payload->target_sizes),
+            .confidence_threshold = state.confidence_threshold,
+            .nms_iou_threshold = state.nms_iou_threshold,
+            .target_sizes = target_sizes_list(state.target_sizes),
             .created_utc = created_utc,
             .setup_ms = timings.setup_ms,
             .preprocess_ms = timings.preprocess_ms,

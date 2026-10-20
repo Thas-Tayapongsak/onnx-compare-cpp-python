@@ -5,7 +5,6 @@
 #include <pipeline_core/core.h>
 
 #include <cstddef>
-#include <cstdint>
 #include <exception>
 #include <format>
 #include <utility>
@@ -13,30 +12,22 @@
 
 namespace
 {
-    constexpr double kDefaultConfidenceThreshold = 0.05;
-    constexpr double kDefaultNmsIouThreshold = 0.7;
     constexpr std::size_t kDefaultBatch = 1;
     constexpr std::size_t kDefaultChannels = 3;
-    constexpr std::size_t kDefaultTargetHeight = 64;
-    constexpr std::size_t kDefaultTargetWidth = 64;
+    constexpr std::size_t kDefaultPixelHeight = 64;
+    constexpr std::size_t kDefaultPixelWidth = 64;
 
     pipeline_core::RunInput
     build_run_input(const pipeline_core::ParsedArgs &parsed_args)
     {
         pipeline_core::InferencePayload payload;
         const std::size_t pixel_count = kDefaultBatch * kDefaultChannels *
-                                        kDefaultTargetHeight *
-                                        kDefaultTargetWidth;
+                                        kDefaultPixelHeight *
+                                        kDefaultPixelWidth;
         payload.pixel_values = pipeline_core::NDArray<float>{
-            {kDefaultBatch, kDefaultChannels, kDefaultTargetHeight,
-             kDefaultTargetWidth},
+            {kDefaultBatch, kDefaultChannels, kDefaultPixelHeight,
+             kDefaultPixelWidth},
             std::vector<float>(pixel_count, 0.0F)};
-        payload.confidence_threshold = kDefaultConfidenceThreshold;
-        payload.nms_iou_threshold = kDefaultNmsIouThreshold;
-        payload.target_sizes = pipeline_core::NDArray<std::int64_t>{
-            {1, 2},
-            {static_cast<std::int64_t>(kDefaultTargetHeight),
-             static_cast<std::int64_t>(kDefaultTargetWidth)}};
 
         pipeline_core::RunInput run_input;
         run_input.parsed_args = parsed_args;

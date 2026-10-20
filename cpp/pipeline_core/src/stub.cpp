@@ -14,32 +14,24 @@ namespace pipeline_core
     InstanceSegmentationInferenceResults
     run_stub(const InferencePayload &payload)
     {
-        std::int64_t height = payload.target_sizes.data.at(0);
-        std::int64_t width = payload.target_sizes.data.at(1);
-        if (height == 0 || width == 0)
-        {
-            height =
-                static_cast<std::int64_t>(payload.pixel_values.shape.at(2));
-            width = static_cast<std::int64_t>(payload.pixel_values.shape.at(3));
-        }
-
-        const std::size_t mask_height = static_cast<std::size_t>(height);
-        const std::size_t mask_width = static_cast<std::size_t>(width);
-        const double width_value = static_cast<double>(width);
-        const double height_value = static_cast<double>(height);
+        const std::size_t mask_height = payload.pixel_values.shape.at(2);
+        const std::size_t mask_width = payload.pixel_values.shape.at(3);
+        const double width_value = static_cast<double>(mask_width);
+        const double height_value = static_cast<double>(mask_height);
 
         InstanceSegmentationInferenceResults results;
         results.num_predictions =
             NDArray<std::int64_t>{{1}, {kPredictionCount}};
         results.scores = NDArray<float>{{kPredictionCount}, {0.9F, 0.8F}};
         results.labels = NDArray<std::int64_t>{{kPredictionCount}, {0, 0}};
-        results.boxes = NDArray<float>{
-            {kPredictionCount, 4},
-            {0.0F, 0.0F, static_cast<float>(width), static_cast<float>(height),
-             static_cast<float>(width_value * 0.125),
-             static_cast<float>(height_value * 0.125),
-             static_cast<float>(width_value * 0.875),
-             static_cast<float>(height_value * 0.875)}};
+        results.boxes =
+            NDArray<float>{{kPredictionCount, 4},
+                           {0.0F, 0.0F, static_cast<float>(mask_width),
+                            static_cast<float>(mask_height),
+                            static_cast<float>(width_value * 0.125),
+                            static_cast<float>(height_value * 0.125),
+                            static_cast<float>(width_value * 0.875),
+                            static_cast<float>(height_value * 0.875)}};
         results.masks = NDArray<std::uint8_t>{
             {kPredictionCount, mask_height, mask_width},
             std::vector<std::uint8_t>(

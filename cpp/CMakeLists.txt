@@ -110,3 +110,9 @@ target_link_libraries(pipeline_core
         advapi32
         psapi
 )
+
+add_custom_command(TARGET cpp_pipeline POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "$<TARGET_FILE:onnxruntime::onnxruntime>"
+        "$<TARGET_FILE_DIR:cpp_pipeline>/onnxruntime.dll"
+)
