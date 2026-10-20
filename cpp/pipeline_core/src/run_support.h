@@ -21,6 +21,9 @@ namespace pipeline_core::detail
     /// Return the integer median of the samples.
     int median_ms(std::vector<int> samples);
 
+    /// Return the median of the samples.
+    double median_double(std::vector<double> samples);
+
     /// Return the current UTC time in ISO 8601 seconds precision.
     std::string utc_now();
 

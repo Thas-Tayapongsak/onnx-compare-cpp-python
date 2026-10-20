@@ -21,6 +21,7 @@ namespace
         data["nms_iou_threshold"] = meta.nms_iou_threshold;
         data["target_sizes"] = meta.target_sizes;
         data["created_utc"] = meta.created_utc;
+        data["repeats"] = meta.repeats;
         data["setup_ms"] = meta.setup_ms;
         data["preprocess_ms"] = meta.preprocess_ms;
         data["inference_ms"] = meta.inference_ms;

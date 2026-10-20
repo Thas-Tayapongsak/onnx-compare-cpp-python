@@ -13,6 +13,7 @@ namespace pipeline_core
         std::filesystem::path model_onnx_path;
         std::filesystem::path image_path;
         std::filesystem::path output_folder_path;
+        int repeats{1};
     };
 
     struct InferencePayload

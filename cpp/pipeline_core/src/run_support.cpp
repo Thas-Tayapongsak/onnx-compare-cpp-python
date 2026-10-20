@@ -40,6 +40,17 @@ namespace pipeline_core::detail
         return (samples[count / 2U - 1U] + samples[count / 2U]) / 2;
     }
 
+    double median_double(std::vector<double> samples)
+    {
+        std::sort(samples.begin(), samples.end());
+        const std::size_t count = samples.size();
+        if (count % 2U == 1U)
+        {
+            return samples[count / 2U];
+        }
+        return (samples[count / 2U - 1U] + samples[count / 2U]) / 2.0;
+    }
+
     std::string utc_now()
     {
         const std::time_t time = std::chrono::system_clock::to_time_t(

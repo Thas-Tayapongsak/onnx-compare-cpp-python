@@ -10,6 +10,7 @@
 
 #include <onnxruntime_cxx_api.h>
 
+#include <array>
 #include <chrono>
 #include <cstdint>
 #include <filesystem>
@@ -85,6 +86,7 @@ namespace pipeline_core
 
     using detail::elapsed_ms;
     using detail::file_name;
+    using detail::median_double;
     using detail::median_ms;
     using detail::target_sizes_list;
     using detail::utc_now;
@@ -101,10 +103,14 @@ namespace pipeline_core
         std::vector<int> inference_samples;
         std::vector<int> postprocess_samples;
         std::vector<int> total_samples;
+        std::vector<double> preprocess_ram_samples;
+        std::vector<double> inference_ram_samples;
+        std::vector<double> postprocess_ram_samples;
         std::vector<InstanceSegmentationInferenceResults> results;
 
         const std::string created_utc = utc_now();
         const MachineInfo machine = read_machine_info();
+        const std::size_t repeat_count = run_input.inference_payloads.size();
 
         memory.enter_stage("setup");
         const Clock::time_point setup_start = Clock::now();
@@ -112,8 +118,12 @@ namespace pipeline_core
         detail::PipelineState &state = require_state();
         const int setup_ms = elapsed_ms(setup_start);
 
+        std::size_t repeat_index = 0;
         for (const InferencePayload &payload : run_input.inference_payloads)
         {
+            ++repeat_index;
+            detail::log_info(
+                std::format("Repeat {} of {}", repeat_index, repeat_count));
             memory.enter_stage("preprocess");
             const Clock::time_point total_start = Clock::now();
 
@@ -134,6 +144,11 @@ namespace pipeline_core
             postprocess_samples.push_back(elapsed_ms(start));
 
             total_samples.push_back(elapsed_ms(total_start));
+            const std::array<double, 3> peaks = memory.end_repeat();
+            preprocess_ram_samples.push_back(peaks[0]);
+            inference_ram_samples.push_back(peaks[1]);
+            postprocess_ram_samples.push_back(peaks[2]);
+            results.clear();
             results.push_back(std::move(final_results));
         }
 
@@ -154,6 +169,7 @@ namespace pipeline_core
             .nms_iou_threshold = state.nms_iou_threshold,
             .target_sizes = target_sizes_list(state.target_sizes),
             .created_utc = created_utc,
+            .repeats = static_cast<std::int64_t>(repeat_count),
             .setup_ms = timings.setup_ms,
             .preprocess_ms = timings.preprocess_ms,
             .inference_ms = timings.inference_ms,
@@ -163,9 +179,9 @@ namespace pipeline_core
             .cpu = machine.cpu,
             .gpu = machine.gpu,
             .setup_ram_gb = memory.stage_ram_gb("setup"),
-            .preprocess_ram_gb = memory.stage_ram_gb("preprocess"),
-            .inference_ram_gb = memory.stage_ram_gb("inference"),
-            .postprocess_ram_gb = memory.stage_ram_gb("postprocess"),
+            .preprocess_ram_gb = median_double(preprocess_ram_samples),
+            .inference_ram_gb = median_double(inference_ram_samples),
+            .postprocess_ram_gb = median_double(postprocess_ram_samples),
             .ram_gb = memory.peak_ram_gb(),
             .setup_vram_gb = 0.0,
             .preprocess_vram_gb = 0.0,

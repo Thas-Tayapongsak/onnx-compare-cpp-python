@@ -19,8 +19,11 @@ namespace
 {
     constexpr double kGib = 1024.0 * 1024.0 * 1024.0;
     constexpr std::chrono::milliseconds kSampleInterval{50};
-    constexpr std::array<std::string_view, 6> kStages{
-        "startup", "setup", "preprocess", "inference", "postprocess", "output"};
+    constexpr std::array<std::string_view, 7> kStages{
+        "startup",     "setup",   "preprocess", "inference",
+        "postprocess", "between", "output"};
+    constexpr std::array<std::string_view, 3> kPayloadStages{
+        "preprocess", "inference", "postprocess"};
 
     bool is_stage(std::string_view stage)
     {
@@ -120,6 +123,24 @@ namespace pipeline_core
         std::lock_guard<std::mutex> lock(_mutex);
         const auto entry = _stage_peaks.find(std::string(stage));
         return entry == _stage_peaks.end() ? 0.0 : entry->second;
+    }
+
+    std::array<double, 3> MemoryMonitor::end_repeat()
+    {
+        std::lock_guard<std::mutex> lock(_mutex);
+        if (!sample_locked())
+        {
+            throw_win32_error(_last_error);
+        }
+        const std::array<double, 3> peaks{_stage_peaks.at("preprocess"),
+                                          _stage_peaks.at("inference"),
+                                          _stage_peaks.at("postprocess")};
+        for (const std::string_view stage : kPayloadStages)
+        {
+            _stage_peaks.at(std::string(stage)) = 0.0;
+        }
+        _stage = "between";
+        return peaks;
     }
 
     void MemoryMonitor::run(std::stop_token stop_token)

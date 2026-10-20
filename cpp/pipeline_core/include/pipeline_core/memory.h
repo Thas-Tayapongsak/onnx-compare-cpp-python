@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <condition_variable>
 #include <mutex>
 #include <string>
@@ -34,6 +35,12 @@ namespace pipeline_core
 
         /// Return the highest working set seen during one stage.
         double stage_ram_gb(std::string_view stage) const;
+
+        /// Return the payload-stage peaks of the repeat that just ended.
+        ///
+        /// The peaks are reset for the next repeat, and the monitor moves to
+        /// the internal `between` stage until the next repeat starts.
+        std::array<double, 3> end_repeat();
 
       private:
         void run(std::stop_token stop_token);

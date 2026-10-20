@@ -4,6 +4,7 @@
 
 #include <pipeline_core/core.h>
 
+#include <cstddef>
 #include <exception>
 #include <format>
 #include <utility>
@@ -13,11 +14,15 @@ namespace
     pipeline_core::RunInput
     build_run_input(const pipeline_core::ParsedArgs &parsed_args)
     {
-        pipeline_core::InferencePayload payload{parsed_args.image_path};
-
         pipeline_core::RunInput run_input;
         run_input.parsed_args = parsed_args;
-        run_input.inference_payloads.push_back(std::move(payload));
+        run_input.inference_payloads.reserve(
+            static_cast<std::size_t>(parsed_args.repeats));
+        for (int repeat = 0; repeat < parsed_args.repeats; ++repeat)
+        {
+            pipeline_core::InferencePayload payload{parsed_args.image_path};
+            run_input.inference_payloads.push_back(std::move(payload));
+        }
         return run_input;
     }
 } // namespace
@@ -44,6 +49,8 @@ int main(int argc, char *argv[])
         std::format("Image path: {}", parsed_args.image_path.string()));
     cpp_pipeline::log_info(std::format(
         "Output folder path: {}", parsed_args.output_folder_path.string()));
+    cpp_pipeline::log_info(
+        std::format("Repeat count: {}", parsed_args.repeats));
     cpp_pipeline::log_info("===========================");
     cpp_pipeline::log_info("Running inference pipeline");
 

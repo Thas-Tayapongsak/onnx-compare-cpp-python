@@ -27,6 +27,7 @@ namespace pipeline_core
         double nms_iou_threshold{0.0};
         std::vector<std::vector<std::int64_t>> target_sizes;
         std::string created_utc;
+        std::int64_t repeats{0};
         std::int64_t setup_ms{0};
         std::int64_t preprocess_ms{0};
         std::int64_t inference_ms{0};
