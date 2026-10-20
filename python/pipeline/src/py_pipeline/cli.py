@@ -9,6 +9,7 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_MODEL_ONNX_FILENAME = "model.onnx"
 DEFAULT_OUTPUT_FOLDER = "runs"
+DEFAULT_REPEATS = 1
 
 
 def parse_args() -> argparse.Namespace:
@@ -35,6 +36,13 @@ def parse_args() -> argparse.Namespace:
         default=DEFAULT_OUTPUT_FOLDER,
         help="Path to the output folder.",
     )
+    parser.add_argument(
+        "--repeat",
+        type=int,
+        required=False,
+        default=DEFAULT_REPEATS,
+        help="Number of times to run the payload. Must be at least 1.",
+    )
     args = parser.parse_args()
     return args
 
@@ -47,6 +55,7 @@ class ParsedArgs:
     model_onnx_path: Path
     image_path: Path
     output_folder_path: Path
+    repeats: int
 
 
 def build_parsed_args(args: argparse.Namespace) -> ParsedArgs | None:
@@ -81,9 +90,14 @@ def build_parsed_args(args: argparse.Namespace) -> ParsedArgs | None:
         logger.error(f"Output path {output_folder_path} is not a directory")
         return None
 
+    if args.repeat < 1:
+        logger.error(f"Repeat count {args.repeat} must be at least 1")
+        return None
+
     return ParsedArgs(
         model_folder_path=model_folder_path,
         model_onnx_path=model_onnx_path,
         image_path=image_path,
         output_folder_path=output_folder_path,
+        repeats=args.repeat,
     )

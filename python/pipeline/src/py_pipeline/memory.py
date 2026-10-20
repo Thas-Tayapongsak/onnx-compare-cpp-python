@@ -9,8 +9,17 @@ import psutil
 _GIB = 1024**3
 _SAMPLE_INTERVAL_S = 0.05
 _STAGES = frozenset(
-    ("startup", "setup", "preprocess", "inference", "postprocess", "output")
+    (
+        "startup",
+        "setup",
+        "preprocess",
+        "inference",
+        "postprocess",
+        "between",
+        "output",
+    )
 )
+_PAYLOAD_STAGES = ("preprocess", "inference", "postprocess")
 
 
 def _working_set_gib(process: psutil.Process) -> float:
@@ -79,6 +88,24 @@ class MemoryMonitor:
         """Return the highest working set seen during one stage."""
         with self._lock:
             return self._stage_peak.get(stage, 0.0)
+
+    def end_repeat(self) -> tuple[float, float, float]:
+        """Return the payload-stage peaks of the repeat that just ended.
+
+        The peaks are reset for the next repeat, and the monitor moves to the
+        internal `between` stage until the next repeat starts.
+        """
+        with self._lock:
+            self._sample_locked()
+            peaks = (
+                self._stage_peak["preprocess"],
+                self._stage_peak["inference"],
+                self._stage_peak["postprocess"],
+            )
+            for stage in _PAYLOAD_STAGES:
+                self._stage_peak[stage] = 0.0
+            self._stage = "between"
+            return peaks
 
     def _run(self) -> None:
         try:

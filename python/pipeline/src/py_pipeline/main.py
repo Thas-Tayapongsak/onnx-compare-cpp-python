@@ -24,9 +24,12 @@ def configure_logging() -> None:
 
 
 def build_run_input(parsed_args: ParsedArgs) -> RunInput:
-    """Build the run input with one image payload."""
-    payload = InferencePayload(image_path=parsed_args.image_path)
-    return RunInput(parsed_args=parsed_args, inference_payloads=[payload])
+    """Build the run input with one payload per repeat."""
+    payloads = [
+        InferencePayload(image_path=parsed_args.image_path)
+        for _ in range(parsed_args.repeats)
+    ]
+    return RunInput(parsed_args=parsed_args, inference_payloads=payloads)
 
 
 def pipeline_main() -> None:
@@ -41,6 +44,7 @@ def pipeline_main() -> None:
     logger.info(f"Model folder path: {parsed_args.model_folder_path}")
     logger.info(f"Image path: {parsed_args.image_path}")
     logger.info(f"Output folder path: {parsed_args.output_folder_path}")
+    logger.info(f"Repeat count: {parsed_args.repeats}")
 
     memory = MemoryMonitor()
     try:

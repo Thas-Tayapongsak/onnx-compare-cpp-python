@@ -42,6 +42,7 @@ class MetaResults:
     nms_iou_threshold: float
     target_sizes: list[list[int]]
     created_utc: str
+    repeats: int
     setup_ms: int
     preprocess_ms: int
     inference_ms: int
@@ -67,7 +68,7 @@ class RunTimings:
     """Timing results for one run.
 
     `setup_ms` is one setup measurement. The other fields are medians across
-    the inference payloads.
+    the repeats.
     """
 
     setup_ms: int
@@ -79,7 +80,7 @@ class RunTimings:
 
 @dataclass
 class RunOutput:
-    """Model results for each payload, run details, and timing results."""
+    """The last repeat's model result, run details, and timing results."""
 
     results: list[InstanceSegmentationInferenceResults]
     meta: MetaResults

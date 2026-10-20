@@ -114,6 +114,11 @@ def _median_ms(samples: list[int]) -> int:
     return int(median(samples))
 
 
+def _median_gb(samples: list[float]) -> float:
+    """Return the median of the memory samples."""
+    return float(median(samples))
+
+
 def _run_pipeline(run_input: RunInput, memory: MemoryMonitor) -> RunOutput:
     """Run the stages and build the output for the caller to finalize."""
     if not run_input.inference_payloads:
@@ -123,7 +128,11 @@ def _run_pipeline(run_input: RunInput, memory: MemoryMonitor) -> RunOutput:
     inference_samples: list[int] = []
     postprocess_samples: list[int] = []
     total_samples: list[int] = []
-    results_list: list[InstanceSegmentationInferenceResults] = []
+    preprocess_ram_samples: list[float] = []
+    inference_ram_samples: list[float] = []
+    postprocess_ram_samples: list[float] = []
+    last_results: InstanceSegmentationInferenceResults | None = None
+    repeat_count = len(run_input.inference_payloads)
 
     created_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     machine_info = read_machine_info()
@@ -133,7 +142,8 @@ def _run_pipeline(run_input: RunInput, memory: MemoryMonitor) -> RunOutput:
     state = _require_state()
     setup_ms = _elapsed_ms(setup_start)
 
-    for payload in run_input.inference_payloads:
+    for index, payload in enumerate(run_input.inference_payloads, start=1):
+        logger.info(f"Repeat {index} of {repeat_count}")
         memory.enter_stage("preprocess")
         total_start = perf_counter()
 
@@ -148,13 +158,19 @@ def _run_pipeline(run_input: RunInput, memory: MemoryMonitor) -> RunOutput:
 
         memory.enter_stage("postprocess")
         start = perf_counter()
-        results = postprocess(raw_results)
+        last_results = postprocess(raw_results)
         postprocess_samples.append(_elapsed_ms(start))
 
         total_samples.append(_elapsed_ms(total_start))
-        results_list.append(results)
+        peaks = memory.end_repeat()
+        preprocess_ram_samples.append(peaks[0])
+        inference_ram_samples.append(peaks[1])
+        postprocess_ram_samples.append(peaks[2])
 
     memory.enter_stage("output")
+
+    if last_results is None:
+        raise RuntimeError("No inference payloads were run")
 
     timings = RunTimings(
         setup_ms=setup_ms,
@@ -171,6 +187,7 @@ def _run_pipeline(run_input: RunInput, memory: MemoryMonitor) -> RunOutput:
         nms_iou_threshold=state.nms_iou_threshold,
         target_sizes=state.target_sizes.tolist(),
         created_utc=created_utc,
+        repeats=repeat_count,
         setup_ms=timings.setup_ms,
         preprocess_ms=timings.preprocess_ms,
         inference_ms=timings.inference_ms,
@@ -180,9 +197,9 @@ def _run_pipeline(run_input: RunInput, memory: MemoryMonitor) -> RunOutput:
         cpu=machine_info.cpu,
         gpu=machine_info.gpu,
         setup_ram_gb=memory.stage_ram_gb("setup"),
-        preprocess_ram_gb=memory.stage_ram_gb("preprocess"),
-        inference_ram_gb=memory.stage_ram_gb("inference"),
-        postprocess_ram_gb=memory.stage_ram_gb("postprocess"),
+        preprocess_ram_gb=_median_gb(preprocess_ram_samples),
+        inference_ram_gb=_median_gb(inference_ram_samples),
+        postprocess_ram_gb=_median_gb(postprocess_ram_samples),
         ram_gb=memory.peak_ram_gb,
         setup_vram_gb=0.0,
         preprocess_vram_gb=0.0,
@@ -190,4 +207,4 @@ def _run_pipeline(run_input: RunInput, memory: MemoryMonitor) -> RunOutput:
         postprocess_vram_gb=0.0,
         vram_gb=0.0,
     )
-    return RunOutput(results=results_list, meta=meta, timings=timings)
+    return RunOutput(results=[last_results], meta=meta, timings=timings)
