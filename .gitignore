@@ -6,8 +6,10 @@ AGENTS.md
 _BLUEPRINT.md
 
 # Files
-onnx/
-images/
+onnx/*
+!onnx/README.md
+images/*
+!images/README.md
 runs/
 cpp/build/
 
